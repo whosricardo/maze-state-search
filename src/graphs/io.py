@@ -15,5 +15,6 @@ def validate_map(grid):
 def validate_rectangular(grid):
     if not grid:
         return True
+
     row_len = len(grid[0])
     return all(len(row) == row_len for row in grid)
