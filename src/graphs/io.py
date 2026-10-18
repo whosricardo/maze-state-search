@@ -38,3 +38,26 @@ def validate_symbols(grid):
         all(cell in ALLOWED_SYMBOLS for cell in row)
         for row in grid
     )
+
+# later create a helper that does the job
+# for this two functions (validate_start and validate_goal)
+
+
+def validate_start(grid):
+    count = sum(
+        cell == 'S'
+        for row in grid
+        for cell in row
+    )
+
+    return count == 1
+
+
+def validate_goal(grid):
+    count = sum(
+        cell == 'G'
+        for row in grid
+        for cell in row
+    )
+
+    return count == 1
