@@ -19,6 +19,15 @@ def validate_map(grid):
     if not validate_rectangular(grid):
         return False
 
+    if not validate_symbols(grid):
+        return False
+
+    if not validate_start(grid):
+        return False
+
+    if not validate_goal(grid):
+        return False
+
     return True
 
 
