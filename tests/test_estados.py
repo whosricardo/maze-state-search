@@ -27,3 +27,95 @@ def test_neighbor_logic(tmp_path):
     result = neighbor_logic(pos, grid)
 
     assert result == expected
+
+
+def test_neighbor_logic_north_blocked(tmp_path):
+    map_file = tmp_path / "test_map.txt"
+
+    map_file.write_text(
+        "#####\n"
+        "#####\n"
+        "#...#\n"
+        "#...#\n"
+        "#####\n"
+    )
+
+    grid = parse_map(map_file)
+
+    pos = (2, 2)
+
+    expected = [
+        (2, 3),
+        (3, 2),
+        (2, 1)
+    ]
+
+    result = neighbor_logic(pos, grid)
+
+    assert result == expected
+
+
+def test_neighbor_logic_wall(tmp_path):
+    map_file = tmp_path / "test_map.txt"
+
+    map_file.write_text(
+        "#####\n"
+        "#####\n"
+        "#...#\n"
+        "#...#\n"
+        "#####\n"
+    )
+
+    grid = parse_map(map_file)
+
+    pos = (0, 0)
+
+    expected = []
+
+    result = neighbor_logic(pos, grid)
+
+    assert result == expected
+
+
+def test_neighbor_logic_out(tmp_path):
+    map_file = tmp_path / "test_map.txt"
+
+    map_file.write_text(
+        "#####\n"
+        "#####\n"
+        "#...#\n"
+        "#...#\n"
+        "#####\n"
+    )
+
+    grid = parse_map(map_file)
+
+    pos = (-1, -1)
+
+    expected = []
+
+    result = neighbor_logic(pos, grid)
+
+    assert result == expected
+
+
+def test_neighbor_logic_out_positive(tmp_path):
+    map_file = tmp_path / "test_map.txt"
+
+    map_file.write_text(
+        "#####\n"
+        "#####\n"
+        "#...#\n"
+        "#...#\n"
+        "#####\n"
+    )
+
+    grid = parse_map(map_file)
+
+    pos = (99, 99)
+
+    expected = []
+
+    result = neighbor_logic(pos, grid)
+
+    assert result == expected
