@@ -29,3 +29,30 @@ def test_add_edge():
     }
 
     assert graph.adjacency == expected
+
+
+def test_add_edge_duplicate():
+    graph = Graph()
+
+    graph.add_edge(3, 4, 2)
+    graph.add_edge(3, 4, 6)
+
+    expected = {
+        3: {4: 2},
+        4: {}
+    }
+
+    assert graph.adjacency == expected
+
+
+def test_get_neighbors():
+    graph = Graph()
+
+    graph.add_edge(3, 4, 2)
+
+    expected = {
+        4: 2
+    }
+
+    assert graph.get_neighbors(3) == expected
+    assert graph.get_neighbors(4) == {}
