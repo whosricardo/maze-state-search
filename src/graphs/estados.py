@@ -66,3 +66,17 @@ def neighbor_logic(pos, grid):
 
 def cell_cost(symbol):
     return CELL_COST[symbol]
+
+
+def build_g_pos(grid):
+    g_pos = Graph()
+
+    for row in range(len(grid)):
+        for column in range(len(grid[row])):
+            symbol = grid[row][column]
+            pos = (row, column)
+
+            if symbol != '#':
+                g_pos.add_vertex(pos)
+
+    return g_pos
