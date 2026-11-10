@@ -1,6 +1,6 @@
 from src.graphs import graph
 from src.graphs import metrics
-
+import pytest
 def build_example_graph():
     g = graph.Graph()
     g.add_edge(1, 2, 3)
@@ -29,4 +29,14 @@ def test_in_degree():
     assert metrics.in_degree(g, 1) == 0
     assert metrics.in_degree(g, 2) == 1
     assert metrics.in_degree(g, 3) == 2
-    
+
+
+def test_in_degree_fail():
+    g = build_example_graph()
+    with pytest.raises(ValueError):
+        metrics.in_degree(g, 99)
+
+def test_out_degree_fail():
+    g = build_example_graph()
+    with pytest.raises(ValueError):
+        metrics.in_degree(g, 99)
