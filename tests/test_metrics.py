@@ -39,4 +39,4 @@ def test_in_degree_fail():
 def test_out_degree_fail():
     g = build_example_graph()
     with pytest.raises(ValueError):
-        metrics.in_degree(g, 99)
+        metrics.out_degree(g, 99)
