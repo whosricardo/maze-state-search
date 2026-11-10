@@ -1,4 +1,4 @@
-from src.graphs.estados import neighbor_logic, cell_cost
+from src.graphs.estados import neighbor_logic, cell_cost, build_g_pos
 from src.graphs.io import parse_map
 import pytest
 
@@ -135,3 +135,21 @@ def test_cell_cost():
 def test_cell_cost_error():
     with pytest.raises(KeyError):
         cell_cost('+')
+
+
+def test_build_g_pos_vertices_only():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', '.', ',', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    g_pos = build_g_pos(grid)
+
+    expected = {
+        (1, 1): {},
+        (1, 2): {},
+        (1, 3): {},
+    }
+
+    assert g_pos.adjacency == expected

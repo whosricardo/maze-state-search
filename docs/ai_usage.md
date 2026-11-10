@@ -1,79 +1,122 @@
+# Documentação de Uso de Inteligência Artificial
 
-## Ferramenta utilizada
+## 1. Ferramenta utilizada
 
-Durante o desenvolvimento inicial do projeto foi utilizado o **ChatGPT (OpenAI)** como ferramenta de apoio ao aprendizado, revisão de código e discussão de decisões de implementação.
+Durante o desenvolvimento do projeto foi utilizado o **ChatGPT (OpenAI)** como ferramenta de apoio ao aprendizado, revisão de código, interpretação de testes e discussão de decisões de implementação.
 
-O uso ocorreu de forma incremental, a partir de trechos de código escritos pelo grupo e dúvidas surgidas durante o desenvolvimento.
+O uso da ferramenta ocorreu de maneira incremental. Foram apresentadas dúvidas, trechos de código já desenvolvidos e resultados de testes para análise e revisão.
+
+Até o estágio atual, a ferramenta foi utilizada principalmente para apoio conceitual, identificação de erros, sugestão de casos de teste e discussão da organização do projeto.
 
 ---
 
-## Leitura e validação dos mapas
+## 2. Organização inicial do projeto
 
-A IA foi utilizada para auxiliar na compreensão de como representar o mapa em Python utilizando listas de listas e coordenadas no formato:
+A IA foi utilizada para discutir a separação de responsabilidades entre os principais módulos.
 
-```python
-(row, col)
+A organização adotada até o momento considera:
+
+```text
+io.py
+    leitura e validação dos mapas
+
+estados.py
+    regras relacionadas às posições do mapa
+    custos das células
+    construção das representações relacionadas ao labirinto
+
+graph.py
+    estrutura genérica de grafo direcionado e ponderado
+
+metrics.py
+    métricas aplicadas sobre a estrutura Graph
 ```
 
-Também foi utilizada para revisar o código escrito para leitura e validação dos arquivos de mapa.
+Foi discutida principalmente a necessidade de manter `graph.py` independente das regras específicas do labirinto.
 
-Foram discutidas validações relacionadas a:
+Dessa forma, a classe `Graph` apenas armazena vértices, arestas e pesos, enquanto `estados.py` é responsável por interpretar o mapa e determinar quais elementos devem fazer parte do grafo.
 
-- formato retangular do mapa;
-- símbolos permitidos;
+---
+
+## 3. Leitura e validação dos mapas
+
+A IA foi utilizada para auxiliar na compreensão da representação do mapa em Python através de listas de listas.
+
+Foi discutido o acesso às posições utilizando:
+
+```python
+grid[row][col]
+```
+
+Também foram revisadas funções desenvolvidas pelo grupo para validar:
+
+- existência de conteúdo no mapa;
+- formato retangular;
+- utilização apenas dos símbolos permitidos;
 - existência de exatamente um ponto inicial `S`;
 - existência de exatamente um objetivo `G`.
 
-Durante essa etapa, a IA também foi utilizada para esclarecer características específicas da linguagem Python, como indexação de listas e comportamento de índices negativos.
+Durante essa etapa também foram esclarecidos comportamentos específicos de Python, como indexação negativa e acesso a matrizes representadas através de listas.
+
+Os testes dessas funções foram desenvolvidos utilizando `pytest`.
 
 ---
 
-## Lógica de vizinhança
+## 4. Lógica de vizinhança
 
-O grupo desenvolveu uma função para identificar posições vizinhas válidas a partir de uma coordenada do mapa.
+Foi desenvolvida pelo grupo uma função `neighbor_logic(pos, grid)` responsável por determinar posições fisicamente adjacentes a uma posição do mapa.
 
-A IA foi utilizada para revisar essa implementação e discutir:
+A IA foi utilizada para revisar versões intermediárias dessa função e discutir:
 
+- representação de posições através de tuplas `(row, col)`;
 - verificação dos limites da matriz;
-- tratamento de paredes (`#`);
-- representação das posições através de tuplas;
+- comportamento de índices negativos em Python;
+- bloqueio causado por paredes `#`;
 - ordem de verificação das direções;
 - consistência do tipo retornado pela função.
 
-A função foi desenvolvida incrementalmente pelo grupo e posteriormente validada através de testes.
+A ordem utilizada foi:
+
+```text
+Norte
+Leste
+Sul
+Oeste
+```
+
+Também foi discutida a decisão de retornar uma lista vazia `[]` quando a posição fornecida estiver fora do mapa ou corresponder a uma parede.
 
 ---
 
-## Testes da lógica de vizinhança
+## 5. Testes da lógica de vizinhança
 
-A IA foi utilizada para sugerir situações relevantes que deveriam ser testadas.
+A IA foi utilizada para sugerir e revisar casos de teste para `neighbor_logic()`.
 
-Foram considerados casos como:
+Até o momento foram implementados testes para:
 
 - posição com quatro vizinhos disponíveis;
-- direção bloqueada por uma parede;
+- posição com o movimento para o norte bloqueado;
 - posição atual localizada em uma parede;
-- posição localizada fora dos limites do mapa.
+- posição com coordenadas negativas;
+- posição com coordenadas superiores aos limites da matriz.
 
-Os testes foram implementados utilizando `pytest`.
+Durante os testes foi discutida também a importância de verificar a ordem dos vizinhos retornados.
 
-A IA também foi utilizada para revisar os testes e interpretar diferenças entre o resultado esperado e o resultado produzido pelo código.
+Os testes foram escritos pelo grupo utilizando `pytest`.
 
 ---
 
-## Estrutura genérica de grafo
+## 6. Estrutura genérica de grafo
 
-Durante a implementação da estrutura básica de grafo, a IA foi utilizada para esclarecer conceitos como:
+A IA foi utilizada como apoio conceitual para compreender a diferença entre:
 
 ```text
 vértice
 aresta
 peso
-lista de adjacência
 grafo direcionado
+estrutura de adjacência
 ```
-
-Também foram discutidas diferentes formas de representar a estrutura de adjacência em Python.
 
 Inicialmente foi considerada uma representação baseada em listas:
 
@@ -83,7 +126,7 @@ Inicialmente foi considerada uma representação baseada em listas:
 }
 ```
 
-Posteriormente, foi adotada uma representação baseada em dicionários:
+Posteriormente foi discutida uma representação baseada em dicionários:
 
 ```python
 {
@@ -93,108 +136,307 @@ Posteriormente, foi adotada uma representação baseada em dicionários:
 }
 ```
 
-Essa decisão foi discutida considerando a necessidade de armazenar uma única relação direcionada entre uma origem e um destino.
+A segunda representação foi escolhida por permitir que cada relação entre uma origem e um destino tenha um único peso associado.
 
 ---
 
-## Desenvolvimento da classe `Graph`
+## 7. Desenvolvimento da classe `Graph`
 
-A classe `Graph` foi desenvolvida pelo grupo de forma incremental.
+A classe `Graph` foi desenvolvida pelo grupo de maneira incremental.
 
-Até o momento, foram implementadas operações para:
+Até o momento ela possui as seguintes responsabilidades:
 
 ```text
-adicionar um vértice
-adicionar uma aresta direcionada com peso
-consultar os vizinhos de um vértice
+add_vertex(vertex)
+    adiciona um vértice caso ele ainda não exista
+
+add_edge(source, destination, weight)
+    garante a existência dos dois vértices
+    e registra uma aresta direcionada com peso
+
+get_neighbors(vertex)
+    retorna os vizinhos e seus respectivos pesos
 ```
 
-A IA foi utilizada para revisar versões intermediárias da implementação e apontar inconsistências entre a estrutura de dados escolhida e as operações realizadas sobre ela.
+A IA foi utilizada para revisar diferentes versões da classe e identificar problemas como:
 
-Também foi discutido o comportamento esperado quando:
+- sobrescrita de vértices existentes;
+- tentativa de acessar uma origem antes de adicioná-la ao grafo;
+- utilização incorreta de listas e dicionários;
+- criação de arestas duplicadas;
+- tratamento de múltiplos pesos para a mesma relação origem-destino.
 
-- um vértice já existe;
-- uma aresta utiliza vértices ainda não cadastrados;
-- uma relação entre origem e destino já existe;
-- um vértice não possui vizinhos.
+Foi adotada uma estrutura equivalente a:
+
+```python
+{
+    source: {
+        destination: weight
+    }
+}
+```
 
 ---
 
-## Testes da classe `Graph`
+## 8. Testes da classe `Graph`
 
-Os testes da classe foram escritos pelo grupo utilizando `pytest`.
+Os testes da classe foram desenvolvidos pelo grupo utilizando `pytest`.
 
-Até o momento foram discutidos e implementados testes relacionados a:
+Foram discutidos e implementados testes relacionados a:
 
-- adição de vértices;
-- tentativa de adicionar novamente um vértice já existente;
-- adição de arestas;
-- criação dos vértices de origem e destino durante a adição de uma aresta;
-- tentativa de adicionar novamente uma relação já existente;
+- criação de vértices;
+- tentativa de adicionar o mesmo vértice mais de uma vez;
+- criação de arestas;
+- criação automática dos vértices de origem e destino;
+- comportamento quando uma relação já existe;
 - consulta dos vizinhos de um vértice;
-- consulta de um vértice sem arestas de saída.
+- vértices sem arestas de saída.
 
-A IA foi utilizada para revisar a lógica dos testes e verificar se os valores esperados estavam de acordo com o comportamento implementado pela classe.
-
----
-
-## Organização do código
-
-A IA também foi utilizada para discutir a separação de responsabilidades entre os módulos já trabalhados.
-
-Até o momento, a organização considerada é:
-
-```text
-io.py
-    leitura e validação dos mapas
-
-estados.py
-    lógica relacionada às posições e ao domínio do labirinto
-
-graph.py
-    estrutura genérica de grafo
-```
-
-Foi discutida a importância de manter a classe `Graph` independente das regras específicas do labirinto.
-
-Dessa forma, a estrutura de grafo é responsável apenas por armazenar vértices, arestas e pesos, enquanto as regras relacionadas ao mapa permanecem em módulos específicos do domínio.
+A IA foi utilizada para revisar os valores esperados e interpretar diferenças entre o estado esperado e o estado real da estrutura `adjacency`.
 
 ---
 
-## Forma de utilização da IA
+## 9. Custos das células
 
-O uso da IA ocorreu principalmente através da apresentação de código previamente escrito pelo grupo para revisão.
+A IA foi utilizada para discutir como representar os custos fixos associados aos símbolos do mapa.
 
-Alguns exemplos do tipo de interação realizada foram:
+Foi criada a estrutura:
 
-```text
-"Essa lógica para encontrar os vizinhos está correta?"
+```python
+CELL_COST = {
+    '.': 1,
+    'S': 1,
+    'G': 1,
+    ',': 3,
+    '~': 5,
+
+    'a': 1,
+    'b': 1,
+    'c': 1,
+    'd': 1,
+
+    'A': 1,
+    'B': 1,
+    'C': 1,
+    'D': 1,
+
+    '>': 1,
+    '<': 1,
+    '^': 1,
+    'v': 1,
+
+    '*': -2,
+}
 ```
 
-```text
-"Qual é a diferença entre adicionar um vértice e uma aresta?"
-```
+Foi discutida a diferença entre:
 
 ```text
-"Essa representação de lista de adjacência faz sentido?"
+ALLOWED_SYMBOLS
+    símbolos válidos em um mapa
+
+CELL_COST
+    símbolos que possuem um custo fixo de entrada
 ```
 
-```text
-"Esse teste está verificando o comportamento correto?"
-```
+O símbolo `#` não foi incluído por representar uma parede não atravessável.
 
-```text
-"Por que o resultado do teste foi diferente do esperado?"
-```
-
-Assim, até esta etapa do projeto, a IA foi utilizada principalmente como ferramenta de **apoio conceitual, revisão de implementação e auxílio na elaboração e interpretação de testes**.
+O símbolo `+` também não foi incluído nessa tabela de custos fixos, pois seu comportamento depende do estado da execução.
 
 ---
 
-## Responsabilidade pelo desenvolvimento
+## 10. Função `cell_cost`
 
-O código apresentado até o momento foi desenvolvido de forma incremental pelo grupo.
+Foi desenvolvida pelo grupo uma função simples para consultar os custos fixos:
 
-As sugestões fornecidas pela IA foram utilizadas como apoio para compreensão dos conceitos, identificação de erros e discussão de alternativas de implementação.
+```python
+def cell_cost(symbol):
+    return CELL_COST[symbol]
+```
 
-As decisões finais sobre a estrutura do código e sua implementação permaneceram sob responsabilidade dos integrantes do grupo.
+A IA foi utilizada para discutir o comportamento dessa implementação.
+
+Foi decidido utilizar o acesso direto ao dicionário para que símbolos que não possuam custo fixo provoquem um `KeyError`, tornando o uso incorreto da função explícito.
+
+Foram implementados testes para diferentes categorias de símbolos, incluindo:
+
+- piso;
+- lama;
+- água;
+- chave;
+- porta;
+- esteira;
+- fonte de custo negativo.
+
+Também foi desenvolvido um teste utilizando:
+
+```python
+with pytest.raises(KeyError):
+```
+
+para verificar o comportamento quando `cell_cost('+')` é chamado.
+
+---
+
+## 11. Início da construção de `G_pos`
+
+A IA foi utilizada para discutir conceitualmente a construção do grafo de posições `G_pos`.
+
+Foi definido o seguinte fluxo:
+
+```text
+arquivo do mapa
+        ↓
+parse_map()
+        ↓
+grid
+        ↓
+build_g_pos(grid)
+        ↓
+Graph
+```
+
+Foi discutida a importância de `build_g_pos()` receber o `grid` já interpretado, mantendo a leitura de arquivos como responsabilidade de `io.py`.
+
+A primeira etapa implementada pelo grupo para `build_g_pos()` foi:
+
+1. criar um objeto `Graph` vazio;
+2. percorrer todas as posições da matriz;
+3. verificar o símbolo existente em cada posição;
+4. ignorar as paredes `#`;
+5. adicionar cada posição atravessável como um vértice;
+6. retornar o grafo.
+
+A versão atual desenvolvida pelo grupo é equivalente a:
+
+```python
+def build_g_pos(grid):
+    g_pos = Graph()
+
+    for row in range(len(grid)):
+        for column in range(len(grid[row])):
+            symbol = grid[row][column]
+            pos = (row, column)
+
+            if symbol != '#':
+                g_pos.add_vertex(pos)
+
+    return g_pos
+```
+
+A IA foi utilizada para revisar essa implementação e identificar inicialmente uma condição invertida que adicionava paredes ao grafo. O grupo realizou a correção antes de prosseguir.
+
+---
+
+## 12. Teste inicial de `G_pos`
+
+Foi desenvolvido um teste específico para verificar somente a criação dos vértices de `G_pos`, antes da implementação das arestas.
+
+Foi utilizado um pequeno grid controlado:
+
+```python
+grid = [
+    ['#', '#', '#', '#', '#'],
+    ['#', 'S', '.', ',', '#'],
+    ['#', '#', '#', '#', '#'],
+]
+```
+
+O resultado esperado foi definido como:
+
+```python
+{
+    (1, 1): {},
+    (1, 2): {},
+    (1, 3): {},
+}
+```
+
+Esse teste verifica que:
+
+```text
+paredes não se tornam vértices
+
+posições atravessáveis se tornam vértices
+
+nenhuma aresta é criada nesta etapa inicial
+```
+
+Foi optado por utilizar diretamente uma matriz no teste, em vez de criar um arquivo temporário, para testar `build_g_pos()` isoladamente da lógica de leitura de arquivos.
+
+---
+
+## 13. Uso do `pytest` e ambiente de desenvolvimento
+
+A IA também foi utilizada para auxiliar na interpretação de problemas relacionados ao ambiente de desenvolvimento.
+
+Em um momento, o editor indicou que o módulo `pytest` não poderia ser resolvido.
+
+Foi verificado através da execução dos testes que:
+
+```text
+pytest estava instalado no ambiente virtual
+os testes eram executados corretamente
+```
+
+Com isso, foi identificado que o problema estava relacionado à configuração do interpretador utilizado pelo editor, e não à implementação do projeto.
+
+---
+
+## 14. Forma de interação utilizada
+
+O uso da IA ocorreu principalmente através de perguntas sobre código já escrito ou sobre decisões específicas antes da implementação.
+
+Exemplos das interações realizadas:
+
+```text
+"Essa lógica para encontrar vizinhos está correta?"
+```
+
+```text
+"Qual é a diferença entre um vértice e uma aresta?"
+```
+
+```text
+"Como representar uma lista de adjacência em Python?"
+```
+
+```text
+"Esse teste está verificando corretamente a função?"
+```
+
+```text
+"Por que esse teste falhou?"
+```
+
+```text
+"Como dividir as responsabilidades entre graph.py e estados.py?"
+```
+
+```text
+"Como representar o custo das células?"
+```
+
+```text
+"Como começar a construir G_pos?"
+```
+
+---
+
+## 15. Responsabilidade pelo desenvolvimento
+
+O desenvolvimento do código foi realizado incrementalmente pelos integrantes do grupo.
+
+A IA foi utilizada como ferramenta de:
+
+- apoio conceitual;
+- revisão de código;
+- identificação de erros;
+- discussão de estruturas de dados;
+- sugestão e revisão de testes;
+- interpretação de resultados do `pytest`;
+- discussão da arquitetura do projeto.
+
+As decisões finais, implementação do código, execução dos testes e organização do projeto permaneceram sob responsabilidade dos integrantes do grupo.
+
+Este documento representa o uso da IA **até o estágio atual do desenvolvimento** e deverá ser atualizado conforme novas etapas forem realizadas.
