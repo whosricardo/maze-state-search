@@ -1,3 +1,32 @@
+from src.graphs.graph import Graph
+
+
+CELL_COST = {
+    '.': 1,
+    'S': 1,
+    'G': 1,
+    ',': 3,
+    '~': 5,
+
+    'a': 1,
+    'b': 1,
+    'c': 1,
+    'd': 1,
+
+    'A': 1,
+    'B': 1,
+    'C': 1,
+    'D': 1,
+
+    '>': 1,
+    '<': 1,
+    '^': 1,
+    'v': 1,
+
+    '*': -2,
+}
+
+
 def neighbor_logic(pos, grid):
     # unpacking pos
     row, col = pos
@@ -33,3 +62,7 @@ def neighbor_logic(pos, grid):
         neighbors.append(o_pos)
 
     return neighbors
+
+
+def cell_cost(symbol):
+    return CELL_COST[symbol]

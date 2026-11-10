@@ -1,5 +1,6 @@
-from src.graphs.estados import neighbor_logic
+from src.graphs.estados import neighbor_logic, cell_cost
 from src.graphs.io import parse_map
+import pytest
 
 
 def test_neighbor_logic(tmp_path):
@@ -119,3 +120,18 @@ def test_neighbor_logic_out_positive(tmp_path):
     result = neighbor_logic(pos, grid)
 
     assert result == expected
+
+
+def test_cell_cost():
+    assert cell_cost('.') == 1
+    assert cell_cost(',') == 3
+    assert cell_cost('~') == 5
+    assert cell_cost('a') == 1
+    assert cell_cost('A') == 1
+    assert cell_cost('>') == 1
+    assert cell_cost('*') == -2
+
+
+def test_cell_cost_error():
+    with pytest.raises(KeyError):
+        cell_cost('+')

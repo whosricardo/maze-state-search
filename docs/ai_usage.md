@@ -1,4 +1,3 @@
-# Documentação de Uso de Inteligência Artificial
 
 ## Ferramenta utilizada
 
