@@ -79,4 +79,16 @@ def build_g_pos(grid):
             if symbol != '#':
                 g_pos.add_vertex(pos)
 
+                # creates list of neighbors [(x,y), (x,y)]
+                neighbors = neighbor_logic(pos, grid)
+
+                for neighbor in neighbors:
+                    # assigns row and column from iterator
+                    neighbor_row, neighbor_column = neighbor
+
+                    destination_symbol = grid[neighbor_row][neighbor_column]
+                    weight = cell_cost(destination_symbol)
+
+                    g_pos.add_edge(pos, neighbor, weight)
+
     return g_pos

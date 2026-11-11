@@ -137,7 +137,7 @@ def test_cell_cost_error():
         cell_cost('+')
 
 
-def test_build_g_pos_vertices_only():
+def test_build_g_pos_edges():
     grid = [
         ['#', '#', '#', '#', '#'],
         ['#', 'S', '.', ',', '#'],
@@ -147,9 +147,16 @@ def test_build_g_pos_vertices_only():
     g_pos = build_g_pos(grid)
 
     expected = {
-        (1, 1): {},
-        (1, 2): {},
-        (1, 3): {},
+        (1, 1): {
+            (1, 2): 1,
+        },
+        (1, 2): {
+            (1, 3): 3,
+            (1, 1): 1,
+        },
+        (1, 3): {
+            (1, 2): 1,
+        },
     }
 
     assert g_pos.adjacency == expected
