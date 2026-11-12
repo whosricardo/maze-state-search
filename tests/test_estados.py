@@ -160,3 +160,27 @@ def test_build_g_pos_edges():
     }
 
     assert g_pos.adjacency == expected
+
+
+def test_build_g_pos_conveyor():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', '>', ',', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    g_pos = build_g_pos(grid)
+
+    expected = {
+        (1, 1): {
+            (1, 2): 1,
+        },
+        (1, 2): {
+            (1, 3): 3,
+        },
+        (1, 3): {
+            (1, 2): 1,
+        }
+    }
+
+    assert g_pos.adjacency == expected
