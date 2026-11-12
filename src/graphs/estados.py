@@ -27,6 +27,14 @@ CELL_COST = {
 }
 
 
+CONVEYOR_DIRECTIONS = {
+    '>': (0, 1),
+    '<': (0, -1),
+    '^': (-1, 0),
+    'v': (1, 0),
+}
+
+
 def neighbor_logic(pos, grid):
     # unpacking pos
     row, col = pos
@@ -82,7 +90,22 @@ def build_g_pos(grid):
                 # creates list of neighbors [(x,y), (x,y)]
                 neighbors = neighbor_logic(pos, grid)
 
+                allowed_neighbor = None
+
+                if symbol in CONVEYOR_DIRECTIONS:
+                    row_offset, column_offset = CONVEYOR_DIRECTIONS[symbol]
+
+                    allowed_neighbor = (
+                        row + row_offset,
+                        column + column_offset
+                    )
+
                 for neighbor in neighbors:
+
+                    # conveyor can only leave in its arrow direction
+                    if allowed_neighbor is not None and neighbor != allowed_neighbor:
+                        continue
+
                     # assigns row and column from iterator
                     neighbor_row, neighbor_column = neighbor
 
