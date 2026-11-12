@@ -87,6 +87,9 @@ def build_g_pos(grid):
             if symbol != '#':
                 g_pos.add_vertex(pos)
 
+                if symbol == 'G':
+                    continue
+
                 # creates list of neighbors [(x,y), (x,y)]
                 neighbors = neighbor_logic(pos, grid)
 
