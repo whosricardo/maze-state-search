@@ -34,6 +34,8 @@ CONVEYOR_DIRECTIONS = {
     'v': (1, 0),
 }
 
+DOOR_CELLS = {'A', 'B', 'C', 'D'}
+
 
 def neighbor_logic(pos, grid):
     # unpacking pos
@@ -76,7 +78,7 @@ def cell_cost(symbol):
     return CELL_COST[symbol]
 
 
-def build_g_pos(grid):
+def build_g_pos(grid, door_mode):
     g_pos = Graph()
 
     for row in range(len(grid)):
@@ -85,6 +87,10 @@ def build_g_pos(grid):
             pos = (row, column)
 
             if symbol != '#':
+                # if symbol is a door an mode is wall skip
+                if symbol in DOOR_CELLS and door_mode == "wall":
+                    continue
+
                 g_pos.add_vertex(pos)
 
                 if symbol == 'G':
@@ -113,6 +119,9 @@ def build_g_pos(grid):
                     neighbor_row, neighbor_column = neighbor
 
                     destination_symbol = grid[neighbor_row][neighbor_column]
+                    if destination_symbol in DOOR_CELLS and door_mode == "wall":
+                        continue
+
                     weight = cell_cost(destination_symbol)
 
                     g_pos.add_edge(pos, neighbor, weight)

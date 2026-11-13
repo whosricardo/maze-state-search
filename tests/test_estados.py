@@ -144,7 +144,7 @@ def test_build_g_pos_edges():
         ['#', '#', '#', '#', '#'],
     ]
 
-    g_pos = build_g_pos(grid)
+    g_pos = build_g_pos(grid, "floor")
 
     expected = {
         (1, 1): {
@@ -200,7 +200,7 @@ def test_build_g_pos_edges():
     ]
 )
 def test_build_g_pos_conveyors(grid, expected_neighbors):
-    g_pos = build_g_pos(grid)
+    g_pos = build_g_pos(grid, "floor")
 
     assert g_pos.adjacency[(1, 2)] == expected_neighbors
 
@@ -212,16 +212,31 @@ def test_build_g_pos_goal_has_no_outgoing_edges():
         ['#', '#', '#', '#', '#'],
     ]
 
-    g_pos = build_g_pos(grid)
+    g_pos = build_g_pos(grid, "floor")
 
     assert g_pos.adjacency[(1, 2)] == {}
 
 
-def test_build_g_pos_wall():
+def test_build_g_pos_door_as_floor():
     grid = [
         ['#', '#', '#', '#', '#'],
-        ['#', 'S', 'A', 'G', '#'],
+        ['#', 'S', 'A', '.', '#'],
         ['#', '#', '#', '#', '#'],
     ]
 
-    g_pos = build_g_pos(grid)
+    g_pos = build_g_pos(grid, door_mode="floor")
+
+    expected = {
+        (1, 1): {
+            (1, 2): 1,
+        },
+        (1, 2): {
+            (1, 3): 1,
+            (1, 1): 1,
+        },
+        (1, 3): {
+            (1, 2): 1,
+        },
+    }
+
+    assert g_pos.adjacency == expected
