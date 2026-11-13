@@ -215,3 +215,13 @@ def test_build_g_pos_goal_has_no_outgoing_edges():
     g_pos = build_g_pos(grid)
 
     assert g_pos.adjacency[(1, 2)] == {}
+
+
+def test_build_g_pos_wall():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', 'A', 'G', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    g_pos = build_g_pos(grid)
