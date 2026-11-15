@@ -130,3 +130,17 @@ def build_g_pos(grid, door_mode):
                     g_pos.add_edge(pos, neighbor, weight)
 
     return g_pos
+
+# G_EST codes
+
+
+def get_initial_state(grid):
+    for row in range(len(grid)):
+        for column in range(len(grid[row])):
+            if grid[row][column] == 'S':
+                start_pos = (row, column)
+                return (
+                    start_pos,
+                    frozenset(),  # keys
+                    frozenset()  # bonus
+                )
