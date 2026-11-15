@@ -173,3 +173,15 @@ def next_state(current_state, destination_pos, grid):
         keys,
         consumed_bonus
     )
+
+
+def can_enter(current_state, destination_symbol):
+    _, keys, _ = current_state
+
+    if destination_symbol not in DOOR_CELLS:
+        return True
+
+    if destination_symbol.lower() in keys:
+        return True
+
+    return False
