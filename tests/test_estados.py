@@ -4,7 +4,8 @@ from src.graphs.estados import (
     build_g_pos,
     get_initial_state,
     next_state,
-    can_enter
+    can_enter,
+    transition_cost
 )
 from src.graphs.io import parse_map
 import pytest
@@ -368,3 +369,57 @@ def test_can_enter_door_without_key():
     )
 
     assert can_enter(state, 'A') is False
+
+
+def test_transition_cost_normal_cell():
+    grid = [
+        ['#', '#', '#', '#'],
+        ['#', '.', '.', '#'],
+        ['#', '#', '#', '#'],
+    ]
+
+    current_state = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    result = transition_cost(current_state, (1, 2), grid)
+
+    assert result == 1
+
+
+def test_transition_cost_bonus_already_consumed():
+    grid = [
+        ['#', '#', '#', '#'],
+        ['#', '.', '+', '#'],
+        ['#', '#', '#', '#'],
+    ]
+
+    current_state = (
+        (1, 1),
+        frozenset(),
+        frozenset({(1, 2)})
+    )
+
+    result = transition_cost(current_state, (1, 2), grid)
+
+    assert result == 1
+
+
+def test_transition_cost_bonus_first_visit():
+    grid = [
+        ['#', '#', '#', '#'],
+        ['#', '.', '+', '#'],
+        ['#', '#', '#', '#'],
+    ]
+
+    current_state = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    result = transition_cost(current_state, (1, 2), grid)
+
+    assert result == -4
