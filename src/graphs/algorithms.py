@@ -25,6 +25,10 @@ def useDijkstra(graph: Graph, source: str , destination: str) -> float:
         current = min(unvisited, key=distances.get)
         
         for neighbor, weight in graph.get_neighbors(current).items():
+            
+            if neighbor not in unvisited:
+                continue
+            
             newDistance = distances[current] + weight
             
             if newDistance < distances[neighbor]:
