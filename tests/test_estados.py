@@ -2,7 +2,8 @@ from src.graphs.estados import (
     neighbor_logic,
     cell_cost,
     build_g_pos,
-    get_initial_state
+    get_initial_state,
+    next_state
 )
 from src.graphs.io import parse_map
 import pytest
@@ -288,3 +289,27 @@ def test_get_initial_state():
     )
 
     assert state == expected
+
+
+def test_next_state_collect_key():
+    grid = [
+        ['#', '#', '#', '#'],
+        ['#', '.', 'b', '#'],
+        ['#', '#', '#', '#'],
+    ]
+
+    current_state = (
+        (1, 1),
+        frozenset({'a'}),
+        frozenset()
+    )
+
+    result = next_state(current_state, (1, 2), grid)
+
+    expected = (
+        (1, 2),
+        frozenset({'a', 'b'}),
+        frozenset()
+    )
+
+    assert result == expected
