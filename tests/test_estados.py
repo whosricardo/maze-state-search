@@ -1,4 +1,9 @@
-from src.graphs.estados import neighbor_logic, cell_cost, build_g_pos
+from src.graphs.estados import (
+    neighbor_logic,
+    cell_cost,
+    build_g_pos,
+    get_initial_state
+)
 from src.graphs.io import parse_map
 import pytest
 
@@ -265,3 +270,21 @@ def test_build_g_pos_bonus():
     }
 
     assert g_pos.adjacency == expected
+
+
+def test_get_initial_state():
+    grid = [
+        ['#', '#', '#', '#'],
+        ['#', 'S', '.', '#'],
+        ['#', '#', '#', '#'],
+    ]
+
+    state = get_initial_state(grid)
+
+    expected = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    assert state == expected

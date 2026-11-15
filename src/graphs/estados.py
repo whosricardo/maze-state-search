@@ -36,6 +36,8 @@ CONVEYOR_DIRECTIONS = {
 
 DOOR_CELLS = {'A', 'B', 'C', 'D'}
 
+KEY_CELLS = {'a', 'b', 'c', 'd'}
+
 
 def neighbor_logic(pos, grid):
     # unpacking pos
@@ -144,3 +146,30 @@ def get_initial_state(grid):
                     frozenset(),  # keys
                     frozenset()  # bonus
                 )
+
+
+def next_state(current_state, destination_pos, grid):
+    _, keys, consumed_bonus = current_state
+
+    destination_row, destination_column = destination_pos
+    destination_symbol = grid[destination_row][destination_column]
+
+    if destination_symbol in KEY_CELLS:
+        return (
+            destination_pos,
+            keys | frozenset({destination_symbol}),
+            consumed_bonus
+        )
+
+    if destination_symbol == '+':
+        return (
+            destination_pos,
+            keys,
+            consumed_bonus | frozenset({destination_pos})
+        )
+
+    return (
+        destination_pos,
+        keys,
+        consumed_bonus
+    )
