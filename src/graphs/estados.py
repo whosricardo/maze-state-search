@@ -185,3 +185,18 @@ def can_enter(current_state, destination_symbol):
         return True
 
     return False
+
+
+def transition_cost(current_state, destination_pos, grid):
+    _, _, consumed_bonus = current_state
+
+    destination_row, destination_column = destination_pos
+    destination_symbol = grid[destination_row][destination_column]
+
+    if destination_symbol != '+':
+        return cell_cost(destination_symbol)
+
+    if destination_pos in consumed_bonus:
+        return 1
+
+    return -4
