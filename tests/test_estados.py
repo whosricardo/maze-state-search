@@ -313,3 +313,27 @@ def test_next_state_collect_key():
     )
 
     assert result == expected
+
+
+def test_next_state_consume_bonus():
+    grid = [
+        ['#', '#', '#', '#'],
+        ['#', '.', '+', '#'],
+        ['#', '#', '#', '#'],
+    ]
+
+    current_state = (
+        (1, 1),
+        frozenset({'a'}),
+        frozenset()
+    )
+
+    result = next_state(current_state, (1, 2), grid)
+
+    expected = (
+        (1, 2),
+        frozenset({'a'}),
+        frozenset({(1, 2)})
+    )
+
+    assert result == expected
