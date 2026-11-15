@@ -122,7 +122,10 @@ def build_g_pos(grid, door_mode):
                     if destination_symbol in DOOR_CELLS and door_mode == "wall":
                         continue
 
-                    weight = cell_cost(destination_symbol)
+                    if destination_symbol == '+':
+                        weight = -4
+                    else:
+                        weight = cell_cost(destination_symbol)
 
                     g_pos.add_edge(pos, neighbor, weight)
 

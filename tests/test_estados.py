@@ -240,3 +240,28 @@ def test_build_g_pos_door_as_floor():
     }
 
     assert g_pos.adjacency == expected
+
+
+def test_build_g_pos_bonus():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', '+', '.', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    g_pos = build_g_pos(grid, "floor")
+
+    expected = {
+        (1, 1): {
+            (1, 2): -4,
+        },
+        (1, 2): {
+            (1, 3): 1,
+            (1, 1): 1,
+        },
+        (1, 3): {
+            (1, 2): -4,
+        },
+    }
+
+    assert g_pos.adjacency == expected
