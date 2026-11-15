@@ -3,7 +3,8 @@ from src.graphs.estados import (
     cell_cost,
     build_g_pos,
     get_initial_state,
-    next_state
+    next_state,
+    can_enter
 )
 from src.graphs.io import parse_map
 import pytest
@@ -337,3 +338,33 @@ def test_next_state_consume_bonus():
     )
 
     assert result == expected
+
+
+def test_can_enter_normal_cell():
+    state = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    assert can_enter(state, '.') is True
+
+
+def test_can_enter_door_with_key():
+    state = (
+        (1, 1),
+        frozenset({'a'}),
+        frozenset()
+    )
+
+    assert can_enter(state, 'A') is True
+
+
+def test_can_enter_door_without_key():
+    state = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    assert can_enter(state, 'A') is False
