@@ -1,3 +1,4 @@
+from src.graphs import graph
 from src.graphs.graph import Graph
 
 
@@ -146,6 +147,7 @@ def get_initial_state(grid):
                     frozenset(),  # keys
                     frozenset()  # bonus
                 )
+    raise ValueError("Start position 'S' not found")
 
 
 def next_state(current_state, destination_pos, grid):
@@ -232,3 +234,37 @@ def valid_neighbors(current_state, grid):
             valid.append(neighbor)
 
     return valid
+
+
+def build_g_est(grid):
+    g_est = Graph()
+
+    initial_state = get_initial_state(grid)
+
+    g_est.add_vertex(initial_state)
+
+    queue = [initial_state]
+    discovered = {initial_state}
+
+    while queue:
+        current_state = queue.pop(0)
+
+        pos, _, _ = current_state
+        current_row, current_column = pos
+
+        if grid[current_row][current_column] == 'G':
+            g_est.add_edge(current_state, "ALVO", 0)
+            continue
+
+        neighbors = valid_neighbors(current_state, grid)
+        for destination_pos in neighbors:
+            weight = transition_cost(current_state, destination_pos, grid)
+            new_state = next_state(current_state, destination_pos, grid)
+
+            g_est.add_edge(current_state, new_state, weight)
+
+            if new_state not in discovered:
+                discovered.add(new_state)
+                queue.append(new_state)
+
+    return g_est
