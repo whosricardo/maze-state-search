@@ -5,7 +5,8 @@ from src.graphs.estados import (
     get_initial_state,
     next_state,
     can_enter,
-    transition_cost
+    transition_cost,
+    valid_neighbors
 )
 from src.graphs.io import parse_map
 import pytest
@@ -423,3 +424,57 @@ def test_transition_cost_bonus_first_visit():
     result = transition_cost(current_state, (1, 2), grid)
 
     assert result == -4
+
+
+def test_valid_neighbors_door_without_key():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', 'A', '.', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    current_state = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    result = valid_neighbors(current_state, grid)
+
+    assert result == []
+
+
+def test_valid_neighbors_door_with_key():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', 'A', '.', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    current_state = (
+        (1, 1),
+        frozenset({'a'}),
+        frozenset()
+    )
+
+    result = valid_neighbors(current_state, grid)
+
+    assert result == [(1, 2)]
+
+
+def test_valid_neighbors_conveyor():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', '.', '>', '.', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    current_state = (
+        (1, 2),
+        frozenset(),
+        frozenset()
+    )
+
+    result = valid_neighbors(current_state, grid)
+
+    assert result == [(1, 3)]
