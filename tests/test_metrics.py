@@ -1,6 +1,8 @@
 from src.graphs import graph
 from src.graphs import metrics
 import pytest
+
+
 def build_example_graph():
     g = graph.Graph()
     g.add_edge(1, 2, 3)
@@ -8,21 +10,23 @@ def build_example_graph():
     g.add_edge(2, 3, 2)
     return g
 
+
 def test_count_vertex():
     g = build_example_graph()
     assert metrics.count_vertex(g) == 3
-    
+
+
 def test_count_edges():
     g = build_example_graph()
     assert metrics.count_edges(g) == 3
-    
+
 
 def test_out_degree():
     g = build_example_graph()
     assert metrics.out_degree(g, 1) == 2
     assert metrics.out_degree(g, 2) == 1
     assert metrics.out_degree(g, 3) == 0
-    
+
 
 def test_in_degree():
     g = build_example_graph()
@@ -36,7 +40,23 @@ def test_in_degree_fail():
     with pytest.raises(ValueError):
         metrics.in_degree(g, 99)
 
+
 def test_out_degree_fail():
     g = build_example_graph()
     with pytest.raises(ValueError):
         metrics.out_degree(g, 99)
+
+
+def test_count_empty_graph():
+    g = graph.Graph()
+
+    assert metrics.count_vertex(g) == 0
+    assert metrics.count_edges(g) == 0
+
+
+def test_degree_with_self_loop():
+    g = graph.Graph()
+    g.add_edge(1, 1, 5)
+
+    assert metrics.out_degree(g, 1) == 1
+    assert metrics.in_degree(g, 1) == 1
