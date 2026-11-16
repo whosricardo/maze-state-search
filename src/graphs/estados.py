@@ -200,3 +200,35 @@ def transition_cost(current_state, destination_pos, grid):
         return 1
 
     return -4
+
+
+def valid_neighbors(current_state, grid):
+    pos, _, _ = current_state
+
+    neighbors = neighbor_logic(pos, grid)
+    valid = []
+
+    row, column = pos
+    current_symbol = grid[row][column]
+
+    allowed_neighbor = None
+
+    if current_symbol in CONVEYOR_DIRECTIONS:
+        row_offset, column_offset = CONVEYOR_DIRECTIONS[current_symbol]
+
+        allowed_neighbor = (
+            row + row_offset,
+            column + column_offset
+        )
+
+    for neighbor in neighbors:
+        if allowed_neighbor is not None and neighbor != allowed_neighbor:
+            continue
+
+        neighbor_row, neighbor_column = neighbor
+        destination_symbol = grid[neighbor_row][neighbor_column]
+
+        if can_enter(current_state, destination_symbol):
+            valid.append(neighbor)
+
+    return valid
