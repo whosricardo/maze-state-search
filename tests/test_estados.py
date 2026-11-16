@@ -599,3 +599,127 @@ def test_build_g_est_door_requires_key():
     assert door_with_key in g_est.get_neighbors(before_door_with_key)
 
     assert g_est.get_neighbors(before_door_with_key)[door_with_key] == 1
+
+
+def test_build_g_est_bonus_first_and_repeated_visit():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', '+', 'G', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    g_est = build_g_est(grid)
+
+    initial_state = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    bonus_state = (
+        (1, 2),
+        frozenset(),
+        frozenset({(1, 2)})
+    )
+
+    start_after_bonus = (
+        (1, 1),
+        frozenset(),
+        frozenset({(1, 2)})
+    )
+
+    goal_after_bonus = (
+        (1, 3),
+        frozenset(),
+        frozenset({(1, 2)})
+    )
+
+    assert g_est.get_neighbors(initial_state)[bonus_state] == -4
+
+    assert g_est.get_neighbors(bonus_state)[start_after_bonus] == 1
+
+    assert g_est.get_neighbors(start_after_bonus)[bonus_state] == 1
+
+    assert g_est.get_neighbors(bonus_state)[goal_after_bonus] == 1
+
+    assert g_est.get_neighbors(goal_after_bonus) == {
+        "ALVO": 0
+    }
+
+
+def test_build_g_est_conveyor_direction():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', '>', 'G', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    g_est = build_g_est(grid)
+
+    initial_state = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    conveyor_state = (
+        (1, 2),
+        frozenset(),
+        frozenset()
+    )
+
+    goal_state = (
+        (1, 3),
+        frozenset(),
+        frozenset()
+    )
+
+    assert g_est.get_neighbors(initial_state) == {
+        conveyor_state: 1
+    }
+
+    assert g_est.get_neighbors(conveyor_state) == {
+        goal_state: 1
+    }
+
+    assert g_est.get_neighbors(goal_state) == {
+        "ALVO": 0
+    }
+
+
+def test_build_g_est_source_cost():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', '*', 'G', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    g_est = build_g_est(grid)
+
+    initial_state = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    source_state = (
+        (1, 2),
+        frozenset(),
+        frozenset()
+    )
+
+    goal_state = (
+        (1, 3),
+        frozenset(),
+        frozenset()
+    )
+
+    assert g_est.get_neighbors(initial_state)[source_state] == -2
+
+    assert g_est.get_neighbors(source_state)[initial_state] == 1
+
+    assert g_est.get_neighbors(source_state)[goal_state] == 1
+
+    assert g_est.get_neighbors(goal_state) == {
+        "ALVO": 0
+    }
