@@ -6,7 +6,8 @@ from src.graphs.estados import (
     next_state,
     can_enter,
     transition_cost,
-    valid_neighbors
+    valid_neighbors,
+    build_g_est
 )
 from src.graphs.io import parse_map
 import pytest
@@ -478,3 +479,88 @@ def test_valid_neighbors_conveyor():
     result = valid_neighbors(current_state, grid)
 
     assert result == [(1, 3)]
+
+
+def test_build_g_est_start_to_goal():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', 'G', '#', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    g_est = build_g_est(grid)
+
+    initial_state = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    goal_state = (
+        (1, 2),
+        frozenset(),
+        frozenset()
+    )
+
+    assert initial_state in g_est.adjacency
+    assert goal_state in g_est.adjacency
+    assert "ALVO" in g_est.adjacency
+
+    assert g_est.get_neighbors(initial_state) == {
+        goal_state: 1
+    }
+
+    assert g_est.get_neighbors(goal_state) == {
+        "ALVO": 0
+    }
+
+
+def test_build_g_est_collects_key():
+    grid = [
+        ['#', '#', '#', '#', '#'],
+        ['#', 'S', 'a', 'G', '#'],
+        ['#', '#', '#', '#', '#'],
+    ]
+
+    g_est = build_g_est(grid)
+
+    initial_state = (
+        (1, 1),
+        frozenset(),
+        frozenset()
+    )
+
+    key_state = (
+        (1, 2),
+        frozenset({'a'}),
+        frozenset()
+    )
+
+    start_with_key_state = (
+        (1, 1),
+        frozenset({'a'}),
+        frozenset()
+    )
+
+    goal_state = (
+        (1, 3),
+        frozenset({'a'}),
+        frozenset()
+    )
+
+    assert g_est.get_neighbors(initial_state) == {
+        key_state: 1
+    }
+
+    assert g_est.get_neighbors(key_state) == {
+        start_with_key_state: 1,
+        goal_state: 1
+    }
+
+    assert g_est.get_neighbors(start_with_key_state) == {
+        key_state: 1
+    }
+
+    assert g_est.get_neighbors(goal_state) == {
+        "ALVO": 0
+    }
