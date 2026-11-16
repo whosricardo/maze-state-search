@@ -1,4 +1,5 @@
-from src.graphs import graph
+from collections import deque
+
 from src.graphs.graph import Graph
 
 
@@ -27,6 +28,7 @@ CELL_COST = {
     '*': -2,
 }
 
+TARGET_VERTEX = "ALVO"
 
 CONVEYOR_DIRECTIONS = {
     '>': (0, 1),
@@ -82,6 +84,8 @@ def cell_cost(symbol):
 
 
 def build_g_pos(grid, door_mode):
+    if door_mode not in {'wall', 'floor'}:
+        raise ValueError("door_mode must be a 'wall' or 'floor'")
     g_pos = Graph()
 
     for row in range(len(grid)):
@@ -243,17 +247,17 @@ def build_g_est(grid):
 
     g_est.add_vertex(initial_state)
 
-    queue = [initial_state]
+    queue = deque([initial_state])
     discovered = {initial_state}
 
     while queue:
-        current_state = queue.pop(0)
+        current_state = queue.popleft()
 
         pos, _, _ = current_state
         current_row, current_column = pos
 
         if grid[current_row][current_column] == 'G':
-            g_est.add_edge(current_state, "ALVO", 0)
+            g_est.add_edge(current_state, TARGET_VERTEX, 0)
             continue
 
         neighbors = valid_neighbors(current_state, grid)
