@@ -564,3 +564,38 @@ def test_build_g_est_collects_key():
     assert g_est.get_neighbors(goal_state) == {
         "ALVO": 0
     }
+
+
+def test_build_g_est_door_requires_key():
+    grid = [
+        ['#', '#', '#', '#', '#', '#', '#'],
+        ['#', 'S', '.', 'A', '.', 'G', '#'],
+        ['#', '.', '.', 'a', '.', '.', '#'],
+        ['#', '#', '#', '#', '#', '#', '#'],
+    ]
+
+    g_est = build_g_est(grid)
+
+    before_door_without_key = (
+        (1, 2),
+        frozenset(),
+        frozenset()
+    )
+
+    before_door_with_key = (
+        (1, 2),
+        frozenset({'a'}),
+        frozenset()
+    )
+
+    door_with_key = (
+        (1, 3),
+        frozenset({'a'}),
+        frozenset()
+    )
+
+    assert door_with_key not in g_est.get_neighbors(before_door_without_key)
+
+    assert door_with_key in g_est.get_neighbors(before_door_with_key)
+
+    assert g_est.get_neighbors(before_door_with_key)[door_with_key] == 1
