@@ -27,7 +27,7 @@ def bfs(g: Graph, start, end = None):
         return {"status": "Explorado", "steps": None, "path": None, "parents": parents}
     
     if end not in parents:
-        return {"status": "Sem caminho", "steps": None, "path": None, "parents": parents}
+        return {"status": "Sem Caminho", "steps": None, "path": None, "parents": parents}
 
     path = [end]
     node = end
