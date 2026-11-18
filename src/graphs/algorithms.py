@@ -1,5 +1,6 @@
 from .graph import Graph
 from collections import deque
+import heapq
 
 
 def bfs(g: Graph, start, end=None):
@@ -247,3 +248,69 @@ def find_trap_states(graph: Graph, start, target="ALVO"):
     can_reach_target = reachable_vertices(transposed, target)
 
     return reachable_from_start - can_reach_target
+
+
+def dijkstra(graph: Graph, start, end="ALVO"):
+    if start not in graph.adjacency:
+        raise ValueError("Vértice Inicial não está no Grafo")
+
+    if end not in graph.adjacency:
+        raise ValueError("Vértice Final não está no Grafo")
+
+    for vertex in graph.adjacency:
+        for weight in graph.get_neighbors(vertex).values():
+            if weight < 0:
+                raise ValueError("Dijkstra não suporta pesos negativos")
+
+    parents = {start: None}
+    costs = {start: 0}
+
+    insertion_counter = 0
+    queue = [(0, insertion_counter, start)]
+
+    while queue:
+        current_cost, _, current = heapq.heappop(queue)
+
+        if current_cost != costs.get(current, float("inf")):
+            continue
+
+        if current == end:
+            path = []
+            node = end
+
+            while node is not None:
+                path.append(node)
+                node = parents[node]
+
+            path.reverse()
+
+            return {
+                "status": "Encontrado",
+                "steps": len(path) - 1,
+                "path": path,
+                "cost": current_cost,
+                "parents": parents,
+            }
+
+        for neighbor, weight in graph.get_neighbors(current).items():
+            new_cost = current_cost + weight
+
+            if new_cost >= costs.get(neighbor, float("inf")):
+                continue
+
+            costs[neighbor] = new_cost
+            parents[neighbor] = current
+
+            insertion_counter += 1
+            heapq.heappush(
+                queue,
+                (new_cost, insertion_counter, neighbor),
+            )
+
+    return {
+        "status": "Sem Caminho",
+        "steps": None,
+        "path": None,
+        "cost": None,
+        "parents": parents,
+    }
