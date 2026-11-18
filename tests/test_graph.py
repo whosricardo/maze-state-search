@@ -56,3 +56,32 @@ def test_get_neighbors():
 
     assert graph.get_neighbors(3) == expected
     assert graph.get_neighbors(4) == {}
+
+
+def test_graph_is_directed():
+    graph = Graph()
+
+    graph.add_edge(3, 4, 2)
+
+    assert graph.get_neighbors(3) == {4: 2}
+    assert graph.get_neighbors(4) == {}
+
+
+def test_get_neighbors_unknown_vertex():
+    graph = Graph()
+
+    assert graph.get_neighbors(99) == {}
+
+
+def test_graph_accepts_state_as_vertex():
+    graph = Graph()
+
+    state = (
+        (1, 1),
+        frozenset({'a'}),
+        frozenset()
+    )
+
+    graph.add_vertex(state)
+
+    assert state in graph.adjacency
