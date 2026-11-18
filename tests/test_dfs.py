@@ -1,54 +1,104 @@
+import pytest
+
 from src.graphs.graph import Graph
 from src.graphs.algorithms import dfs
 
 
-def build_example_graph():
-    g = Graph()
-    g.add_edge(1, 2, 1)
-    g.add_edge(1, 3, 1)
-    g.add_edge(2, 4, 1)
-    g.add_edge(3, 4, 1)
-    return g
+def test_dfs_simple_tree():
+    graph = Graph()
+
+    graph.add_edge("A", "B", 1)
+    graph.add_edge("A", "C", 1)
+
+    result = dfs(graph, "A")
+
+    assert result["status"] == "Finalizado"
+    assert result["has_cycle"] is False
+
+    assert result["parents"] == {
+        "A": None,
+        "B": "A",
+        "C": "A"
+    }
+
+    assert result["edge_types"] == [
+        ("A", "B", "TREE"),
+        ("A", "C", "TREE")
+    ]
 
 
-def test_dfs_finds_path():
-    g = build_example_graph()
-    result = dfs(g, 1, 4)
+def test_dfs_detects_back_edge_and_cycle():
+    graph = Graph()
 
-    assert result["status"] == "Encontrado"
-    assert result["path"] == [1, 3, 4]
-    assert result["steps"] == len(result["path"]) - 1
+    graph.add_edge("A", "B", 1)
+    graph.add_edge("B", "C", 1)
+    graph.add_edge("C", "A", 1)
 
+    result = dfs(graph, "A")
 
-def test_dfs_start_equals_end():
-    g = build_example_graph()
-    result = dfs(g, 1, 1)
+    assert result["has_cycle"] is True
 
-    assert result["status"] == "Encontrado"
-    assert result["steps"] == 0
-    assert result["path"] == [1]
+    assert ("A", "B", "TREE") in result["edge_types"]
+    assert ("B", "C", "TREE") in result["edge_types"]
+    assert ("C", "A", "BACK") in result["edge_types"]
 
 
-def test_dfs_impossible_access():
-    g = Graph()
-    g.add_edge(1, 2, 1)
+def test_dfs_detects_forward_edge():
+    graph = Graph()
 
-    result = dfs(g, 2, 1)
+    graph.add_edge("A", "B", 1)
+    graph.add_edge("A", "C", 1)
+    graph.add_edge("B", "C", 1)
 
-    assert result["status"] == "Sem Caminho"
-    assert result["steps"] is None
-    assert result["path"] is None
+    result = dfs(graph, "A")
+
+    assert result["has_cycle"] is False
+
+    assert ("A", "B", "TREE") in result["edge_types"]
+    assert ("B", "C", "TREE") in result["edge_types"]
+    assert ("A", "C", "FORWARD") in result["edge_types"]
 
 
-def test_dfs_missing_start_raises_error():
-    g = build_example_graph()
+def test_dfs_detects_cross_edge():
+    graph = Graph()
+
+    graph.add_edge("A", "B", 1)
+    graph.add_edge("A", "C", 1)
+    graph.add_edge("C", "B", 1)
+
+    result = dfs(graph, "A")
+
+    assert result["has_cycle"] is False
+
+    assert ("A", "B", "TREE") in result["edge_types"]
+    assert ("A", "C", "TREE") in result["edge_types"]
+    assert ("C", "B", "CROSS") in result["edge_types"]
+
+
+def test_dfs_invalid_start():
+    graph = Graph()
+    graph.add_vertex("A")
 
     with pytest.raises(ValueError):
-        dfs(g, 99, 4)
+        dfs(graph, "X")
 
 
-def test_dfs_missing_end_raises_error():
-    g = build_example_graph()
+def test_dfs_with_state_graph_vertices():
+    graph = Graph()
 
-    with pytest.raises(ValueError):
-        dfs(g, 1, 99)
+    start = ((1, 1), frozenset(), frozenset())
+    goal = ((1, 2), frozenset(), frozenset())
+
+    graph.add_edge(start, goal, 1)
+    graph.add_edge(goal, "ALVO", 0)
+
+    result = dfs(graph, start)
+
+    assert result["has_cycle"] is False
+
+    assert result["parents"][start] is None
+    assert result["parents"][goal] == start
+    assert result["parents"]["ALVO"] == goal
+
+    assert (start, goal, "TREE") in result["edge_types"]
+    assert (goal, "ALVO", "TREE") in result["edge_types"]

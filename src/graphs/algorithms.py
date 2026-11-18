@@ -105,3 +105,95 @@ def dfs(graph, start):
         "discovery": discovery,
         "finish": finish
     }
+
+
+def bellman_ford(graph, start, end="ALVO"):
+    if start not in graph.adjacency:
+        raise ValueError("Vertice Inicial não está no Grafo")
+    if end not in graph.adjacency:
+        raise ValueError("Vertice Final não está no grafo")
+
+    reverse_tree = {start: None}
+    cost_map = {start: 0}
+
+    vertex_count = len(graph.adjacency)
+
+    for _ in range(vertex_count - 1):
+        changed = False
+        for state, adj in graph.adjacency.items():
+            if state not in cost_map:
+                continue
+
+            cost = cost_map[state]
+            for next_state, next_cost in adj.items():
+                accumulated_cost = cost + next_cost
+                if cost_map.get(next_state, float("inf")) <= accumulated_cost:
+                    continue
+
+                cost_map[next_state] = accumulated_cost
+                reverse_tree[next_state] = state
+                changed = True
+
+        if not changed:
+            break
+
+    for state, adj in graph.adjacency.items():
+        if state not in cost_map:
+            continue
+
+        cost = cost_map[state]
+        for next_state, next_cost in adj.items():
+            accumulated_cost = cost + next_cost
+
+            if cost_map.get(next_state, float("inf")) > accumulated_cost:
+                reverse_tree[next_state] = state
+
+                cycle_node = next_state
+                for _ in range(vertex_count):
+                    cycle_node = reverse_tree[cycle_node]
+
+                cycle = []
+                curr = cycle_node
+                while True:
+                    cycle.append(curr)
+                    curr = reverse_tree[curr]
+                    if curr == cycle_node:
+                        cycle.append(curr)
+                        break
+
+                cycle.reverse()
+
+                return {
+                    "status": "Ciclo Negativo",
+                    "steps": None,
+                    "path": None,
+                    "cost": float("-inf"),
+                    "parents": reverse_tree,
+                    "cycle": cycle
+                }
+
+    if end not in reverse_tree:
+        return {
+            "status": "Sem Caminho",
+            "steps": None,
+            "path": None,
+            "cost": None,
+            "parents": reverse_tree,
+            "cycle": None
+        }
+
+    path = []
+    curr = end
+    while curr is not None:
+        path.append(curr)
+        curr = reverse_tree[curr]
+    path.reverse()
+
+    return {
+        "status": "Encontrado",
+        "steps": len(path) - 1,
+        "path": path,
+        "cost": cost_map[end],
+        "parents": reverse_tree,
+        "cycle": None
+    }
