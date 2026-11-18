@@ -1,6 +1,6 @@
 from .graph import Graph
 
-def useDijkstra(graph: Graph, source: str , destination: str) -> float:
+def useDijkstra(graph: Graph, source: str , destination: str) -> tuple:
     
     if source not in graph.adjacency:
         raise ValueError("Start vertex does not exist")
@@ -15,6 +15,11 @@ def useDijkstra(graph: Graph, source: str , destination: str) -> float:
             
     distances = {
         vertex: float("inf")
+        for vertex in graph.adjacency
+    }
+    
+    previous = {
+        vertex: None
         for vertex in graph.adjacency
     }
     
@@ -33,7 +38,21 @@ def useDijkstra(graph: Graph, source: str , destination: str) -> float:
             
             if newDistance < distances[neighbor]:
                 distances[neighbor] = newDistance
+                previous[neighbor] = current
                 
         unvisited.remove(current)
         
-    return distances[destination]
+
+    if distances[destination] == float("inf"):
+        return float("inf"), []
+
+    path = []
+    current = destination
+
+    while current is not None:
+        path.append(current)
+        current = previous[current]
+
+    path.reverse()        
+        
+    return distances[destination], path

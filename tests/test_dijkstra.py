@@ -7,9 +7,10 @@ def test_direct_path():
     graph = Graph()
     graph.add_edge("A", "B", 4)
 
-    result = useDijkstra(graph, "A", "B")
+    distance, path = useDijkstra(graph, "A", "B")
 
-    assert result == 4
+    assert distance == 4
+    assert path == ["A", "B"]
 
 
 def test_shortest_indirect_path():
@@ -18,9 +19,10 @@ def test_shortest_indirect_path():
     graph.add_edge("B", "C", 3)
     graph.add_edge("A", "C", 10)
 
-    result = useDijkstra(graph, "A", "C")
+    distance, path = useDijkstra(graph, "A", "C")
 
-    assert result == 7
+    assert distance == 7
+    assert path == ["A", "B", "C"]
 
 
 def test_shortest_path_multiple_edges():
@@ -31,27 +33,30 @@ def test_shortest_path_multiple_edges():
     graph.add_edge("B", "D", 12)
     graph.add_edge("C", "D", 2)
 
-    result = useDijkstra(graph, "A", "D")
+    distance, path = useDijkstra(graph, "A", "D")
 
-    assert result == 9
+    assert distance == 9
+    assert path == ["A", "B", "C", "D"]
 
 
 def test_same_source_and_destination():
     graph = Graph()
     graph.add_vertex("A")
 
-    result = useDijkstra(graph, "A", "A")
+    distance, path = useDijkstra(graph, "A", "A")
 
-    assert result == 0
+    assert distance == 0
+    assert path == ["A"]
 
 
 def test_unreachable_destination():
     graph = Graph()
     graph.add_edge("A", "B", 4)
 
-    result = useDijkstra(graph, "B", "A")
+    distance, path = useDijkstra(graph, "B", "A")
 
-    assert result == float("inf")
+    assert distance == float("inf")
+    assert path == []
 
 
 def test_invalid_source():
@@ -82,9 +87,10 @@ def test_zero_weight():
     graph = Graph()
     graph.add_edge("A", "B", 0)
 
-    result = useDijkstra(graph, "A", "B")
+    distance, path = useDijkstra(graph, "A", "B")
 
-    assert result == 0
+    assert distance == 0
+    assert path == ["A", "B"]
 
 
 def test_float_weights():
@@ -92,9 +98,10 @@ def test_float_weights():
     graph.add_edge("A", "B", 1.5)
     graph.add_edge("B", "C", 2.25)
 
-    result = useDijkstra(graph, "A", "C")
+    distance, path = useDijkstra(graph, "A", "C")
 
-    assert result == pytest.approx(3.75)
+    assert distance == pytest.approx(3.75)
+    assert path == ["A", "B", "C"]
 
 
 def test_graph_with_cycle():
@@ -103,9 +110,10 @@ def test_graph_with_cycle():
     graph.add_edge("B", "C", 3)
     graph.add_edge("C", "A", 1)
 
-    result = useDijkstra(graph, "A", "C")
+    distance, path = useDijkstra(graph, "A", "C")
 
-    assert result == 5
+    assert distance == 5
+    assert path == ["A", "B", "C"]
 
 
 def test_disconnected_vertex():
@@ -113,9 +121,10 @@ def test_disconnected_vertex():
     graph.add_edge("A", "B", 4)
     graph.add_vertex("C")
 
-    result = useDijkstra(graph, "A", "C")
+    distance, path = useDijkstra(graph, "A", "C")
 
-    assert result == float("inf")
+    assert distance == float("inf")
+    assert path == []
 
 
 def test_empty_graph():
@@ -123,3 +132,45 @@ def test_empty_graph():
 
     with pytest.raises(ValueError):
         useDijkstra(graph, "A", "B")
+
+
+def test_path_with_multiple_updates():
+    graph = Graph()
+    graph.add_edge("A", "D", 20)
+    graph.add_edge("A", "B", 2)
+    graph.add_edge("B", "D", 10)
+    graph.add_edge("B", "C", 3)
+    graph.add_edge("C", "D", 2)
+
+    distance, path = useDijkstra(graph, "A", "D")
+
+    assert distance == 7
+    assert path == ["A", "B", "C", "D"]
+
+
+def test_path_with_zero_weight_edges():
+    graph = Graph()
+    graph.add_edge("A", "B", 0)
+    graph.add_edge("B", "C", 0)
+    graph.add_edge("A", "C", 5)
+
+    distance, path = useDijkstra(graph, "A", "C")
+
+    assert distance == 0
+    assert path == ["A", "B", "C"]
+
+
+def test_multiple_shortest_paths():
+    graph = Graph()
+    graph.add_edge("A", "B", 2)
+    graph.add_edge("A", "C", 2)
+    graph.add_edge("B", "D", 3)
+    graph.add_edge("C", "D", 3)
+
+    distance, path = useDijkstra(graph, "A", "D")
+
+    assert distance == 5
+    assert path in [
+        ["A", "B", "D"],
+        ["A", "C", "D"]
+    ]
