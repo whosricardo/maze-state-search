@@ -197,3 +197,53 @@ def bellman_ford(graph, start, end="ALVO"):
         "parents": reverse_tree,
         "cycle": None
     }
+
+
+def transpose_graph(graph: Graph) -> Graph:
+    transposed = Graph()
+
+    for vertex in graph.adjacency:
+        transposed.add_vertex(vertex)
+
+    for source, neighbors in graph.adjacency.items():
+        for destination, weight in neighbors.items():
+            transposed.add_edge(destination, source, weight)
+
+    return transposed
+
+
+def reachable_vertices(graph: Graph, start):
+    if start not in graph.adjacency:
+        raise ValueError("Vértice Inicial não está no Grafo")
+
+    visited = set()
+    stack = [start]
+
+    while stack:
+        current = stack.pop()
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+
+        for neighbor in graph.get_neighbors(current):
+            if neighbor not in visited:
+                stack.append(neighbor)
+
+    return visited
+
+
+def find_trap_states(graph: Graph, start, target="ALVO"):
+    if start not in graph.adjacency:
+        raise ValueError("Vértice Inicial não está no Grafo")
+
+    reachable_from_start = reachable_vertices(graph, start)
+
+    if target not in graph.adjacency:
+        return reachable_from_start
+
+    transposed = transpose_graph(graph)
+    can_reach_target = reachable_vertices(transposed, target)
+
+    return reachable_from_start - can_reach_target
