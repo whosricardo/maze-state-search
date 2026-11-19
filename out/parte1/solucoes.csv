@@ -1,0 +1,25 @@
+mapa,algoritmo,status,passos,custo
+m01_terreno,BFS,Encontrado,11,
+m01_terreno,Dijkstra,Encontrado,,20
+m01_terreno,Bellman-Ford,Encontrado,,20
+m02_uma_chave,BFS,Encontrado,35,
+m02_uma_chave,Dijkstra,Encontrado,,46
+m02_uma_chave,Bellman-Ford,Encontrado,,46
+m03_tres_chaves,BFS,Encontrado,88,
+m03_tres_chaves,Dijkstra,Encontrado,,99
+m03_tres_chaves,Bellman-Ford,Encontrado,,99
+m04_esteiras,BFS,Encontrado,21,
+m04_esteiras,Dijkstra,Encontrado,,36
+m04_esteiras,Bellman-Ford,Encontrado,,36
+m05_bonus,BFS,Encontrado,13,
+m05_bonus,Dijkstra,Recusado,,
+m05_bonus,Bellman-Ford,Encontrado,,5
+m06_fonte,BFS,Encontrado,11,
+m06_fonte,Dijkstra,Recusado,,
+m06_fonte,Bellman-Ford,Ciclo Negativo,,
+m07_impossivel,BFS,Sem Caminho,,
+m07_impossivel,Dijkstra,Sem Caminho,,
+m07_impossivel,Bellman-Ford,Sem Caminho,,
+m08_grande,BFS,Encontrado,393,
+m08_grande,Dijkstra,Encontrado,,482
+m08_grande,Bellman-Ford,Encontrado,,482
