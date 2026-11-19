@@ -440,3 +440,21 @@ A IA foi utilizada como ferramenta de:
 As decisões finais, implementação do código, execução dos testes e organização do projeto permaneceram sob responsabilidade dos integrantes do grupo.
 
 Este documento representa o uso da IA **até o estágio atual do desenvolvimento** e deverá ser atualizado conforme novas etapas forem realizadas.
+
+---
+
+## 16. Interface gráfica (pygame) — `src/frontend/`
+
+Ferramenta: **Claude Code (Anthropic, modelo Claude Opus 5.5)**.
+
+Finalidade: apoio com a sintaxe de **pygame** (biblioteca de visualização) para o labirinto
+interativo: desenho dos tiles, animação, widgets, editor de mapas e exportação de PNG.
+Todos os arquivos de `src/frontend/` estão marcados com `# [IA] Claude Code (Opus 5.5) – ...`.
+
+O que a IA **não** fez: a interface não implementa BFS, DFS, Dijkstra, Bellman-Ford nem a
+construção do grafo de estados. `src/frontend/model.py` apenas importa e chama as funções do
+grupo (`io.py`, `estados.py`, `algorithms.py`, `metrics.py`, `export.py`) e reorganiza os
+resultados em quadros de animação.
+
+O grupo revisou o código gerado e é responsável por saber explicar cada módulo
+(`theme`, `widgets`, `board`, `model`, `viewer`, `editor`, `app`).
