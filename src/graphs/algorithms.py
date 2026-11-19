@@ -168,7 +168,7 @@ def bellman_ford(graph, start, end="ALVO"):
                     "status": "Ciclo Negativo",
                     "steps": None,
                     "path": None,
-                    "cost": float("-inf"),
+                    "cost": None,
                     "parents": reverse_tree,
                     "cycle": cycle
                 }
