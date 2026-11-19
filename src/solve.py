@@ -25,7 +25,8 @@ from src.graphs.export import (
     export_global_metrics,
     format_state,
     build_bonus_id_map,
-    export_layers
+    export_layers,
+    export_model_comparison
 )
 from src.graphs.metrics import (
     count_vertex,
@@ -48,6 +49,12 @@ MAPS = [
     "m07_impossivel",
     "m08_grande",
 ]
+
+COMPARISON_MAPS = {
+    "m02_uma_chave",
+    "m03_tres_chaves",
+    "m04_esteiras",
+}
 
 OUTPUT_DIR = Path("out/parte1")
 
@@ -113,7 +120,19 @@ def export_map_traps(
     )
 
 
-def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data):
+def find_start_and_goal(grid):
+    start_pos = None
+    goal_pos = None
+    for r, row in enumerate(grid):
+        for c, cell in enumerate(row):
+            if cell == 'S':
+                start_pos = (r, c)
+            elif cell == 'G':
+                goal_pos = (r, c)
+    return start_pos, goal_pos
+
+
+def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data, comparison_rows):
     map_path = Path("data/mapas") / f"{map_name}.txt"
 
     grid = parse_map(map_path)
@@ -124,8 +143,6 @@ def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data):
     bonus_ids = build_bonus_id_map(grid)
 
     graph = build_g_est(grid)
-
-    layers_data[map_name] = analyze_layers(graph)
 
     g_pos = build_g_pos(
         grid,
@@ -144,14 +161,12 @@ def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data):
     print(f"\n=== {map_name} ===")
     print("Vértices:", len(graph.adjacency))
 
-    # Arestas do grafo de estados
     export_edges(
         graph,
         OUTPUT_DIR / f"arestas_{map_name}.csv",
         bonus_ids
     )
 
-    # DFS
     dfs_result = dfs(graph, start)
 
     collect_dfs_rows(
@@ -190,7 +205,34 @@ def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data):
 
     layers_data[map_name] = analyze_layers(graph)
 
-    # Caso sem ALVO, como m07
+    if map_name in COMPARISON_MAPS:
+        pos_start, pos_goal = find_start_and_goal(grid)
+
+        bfs_pos_floor = bfs(g_pos, pos_start, pos_goal)
+        comparison_rows.append([
+            map_name,
+            "porta_como_chao",
+            bfs_pos_floor["status"],
+            bfs_pos_floor.get("steps", "")
+        ])
+
+        g_pos_wall = build_g_pos(grid, door_mode="wall")
+        bfs_pos_wall = bfs(g_pos_wall, pos_start, pos_goal)
+        comparison_rows.append([
+            map_name,
+            "porta_como_parede",
+            bfs_pos_wall["status"],
+            bfs_pos_wall.get("steps", "")
+        ])
+
+        bfs_est = bfs(graph, start, TARGET_VERTEX)
+        comparison_rows.append([
+            map_name,
+            "grafo_estados",
+            bfs_est["status"],
+            bfs_est.get("steps", "")
+        ])
+
     if TARGET_VERTEX not in graph.adjacency:
         print("BFS: Sem Caminho")
         print("Dijkstra: Sem Caminho")
@@ -226,7 +268,6 @@ def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data):
 
         return
 
-    # BFS
     bfs_result = bfs(
         graph,
         start,
@@ -247,7 +288,6 @@ def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data):
         steps=bfs_result["steps"],
     )
 
-    # Dijkstra
     try:
         dijkstra_result = dijkstra(
             graph,
@@ -289,7 +329,6 @@ def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data):
             "Recusado",
         )
 
-    # Bellman-Ford
     bellman_result = bellman_ford(
         graph,
         start,
@@ -315,7 +354,6 @@ def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data):
         cost=bellman_cost,
     )
 
-    # Ciclo negativo obrigatório do m06
     if (
         map_name == "m06_fonte"
         and bellman_result.get("cycle") is not None
@@ -328,7 +366,6 @@ def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data):
             bonus_ids
         )
 
-    # Armadilhas de m04 / m07
     export_map_traps(
         graph,
         start,
@@ -342,6 +379,7 @@ def main():
     solution_rows = []
     dfs_rows = []
     layers_data = {}
+    comparison_rows = []
 
     for map_name in MAPS:
         run_map(
@@ -349,7 +387,8 @@ def main():
             solution_rows,
             dfs_rows,
             metrics_data,
-            layers_data
+            layers_data,
+            comparison_rows
         )
 
     export_solutions(
@@ -370,6 +409,11 @@ def main():
     export_layers(
         layers_data,
         OUTPUT_DIR / "camadas.json",
+    )
+
+    export_model_comparison(
+        comparison_rows,
+        OUTPUT_DIR / "comparacao_modelagem.csv",
     )
 
     print(

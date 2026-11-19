@@ -228,3 +228,19 @@ def export_layers(data, path):
             indent=4,
             ensure_ascii=False,
         )
+
+
+def export_model_comparison(rows, path):
+    path = _prepare_path(path)
+
+    with open(path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+
+        writer.writerow([
+            "mapa",
+            "modelagem",
+            "status",
+            "passos",
+        ])
+
+        writer.writerows(rows)

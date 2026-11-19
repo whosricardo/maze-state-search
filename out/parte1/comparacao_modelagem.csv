@@ -1,0 +1,10 @@
+mapa,modelagem,status,passos
+m02_uma_chave,porta_como_chao,Encontrado,10
+m02_uma_chave,porta_como_parede,Sem Caminho,
+m02_uma_chave,grafo_estados,Encontrado,35
+m03_tres_chaves,porta_como_chao,Encontrado,21
+m03_tres_chaves,porta_como_parede,Sem Caminho,
+m03_tres_chaves,grafo_estados,Encontrado,88
+m04_esteiras,porta_como_chao,Encontrado,14
+m04_esteiras,porta_como_parede,Sem Caminho,
+m04_esteiras,grafo_estados,Encontrado,21
