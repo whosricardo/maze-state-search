@@ -1,0 +1,114 @@
+{
+    "m01_terreno": {
+        "g_pos": {
+            "ordem": 24,
+            "tamanho": 46,
+            "densidade": 0.08333333333333333
+        },
+        "g_est": {
+            "ordem": 25,
+            "tamanho": 47,
+            "densidade": 0.07833333333333334,
+            "teto_teorico": 24,
+            "ocupacao": 1.0
+        }
+    },
+    "m02_uma_chave": {
+        "g_pos": {
+            "ordem": 23,
+            "tamanho": 43,
+            "densidade": 0.08498023715415019
+        },
+        "g_est": {
+            "ordem": 40,
+            "tamanho": 75,
+            "densidade": 0.04807692307692308,
+            "teto_teorico": 46,
+            "ocupacao": 0.8478260869565217
+        }
+    },
+    "m03_tres_chaves": {
+        "g_pos": {
+            "ordem": 76,
+            "tamanho": 167,
+            "densidade": 0.029298245614035087
+        },
+        "g_est": {
+            "ordem": 214,
+            "tamanho": 467,
+            "densidade": 0.010245272256592514,
+            "teto_teorico": 608,
+            "ocupacao": 0.3503289473684211
+        }
+    },
+    "m04_esteiras": {
+        "g_pos": {
+            "ordem": 24,
+            "tamanho": 39,
+            "densidade": 0.07065217391304347
+        },
+        "g_est": {
+            "ordem": 38,
+            "tamanho": 67,
+            "densidade": 0.0476529160739687,
+            "teto_teorico": 48,
+            "ocupacao": 0.7708333333333334
+        }
+    },
+    "m05_bonus": {
+        "g_pos": {
+            "ordem": 44,
+            "tamanho": 90,
+            "densidade": 0.04756871035940803
+        },
+        "g_est": {
+            "ordem": 216,
+            "tamanho": 444,
+            "densidade": 0.009560723514211887,
+            "teto_teorico": 352,
+            "ocupacao": 0.6107954545454546
+        }
+    },
+    "m06_fonte": {
+        "g_pos": {
+            "ordem": 24,
+            "tamanho": 46,
+            "densidade": 0.08333333333333333
+        },
+        "g_est": {
+            "ordem": 25,
+            "tamanho": 47,
+            "densidade": 0.07833333333333334,
+            "teto_teorico": 24,
+            "ocupacao": 1.0
+        }
+    },
+    "m07_impossivel": {
+        "g_pos": {
+            "ordem": 31,
+            "tamanho": 69,
+            "densidade": 0.07419354838709677
+        },
+        "g_est": {
+            "ordem": 16,
+            "tamanho": 38,
+            "densidade": 0.15833333333333333,
+            "teto_teorico": 62,
+            "ocupacao": 0.25806451612903225
+        }
+    },
+    "m08_grande": {
+        "g_pos": {
+            "ordem": 1169,
+            "tamanho": 2574,
+            "densidade": 0.001885172902726836
+        },
+        "g_est": {
+            "ordem": 2920,
+            "tamanho": 6365,
+            "densidade": 0.0007467607127605156,
+            "teto_teorico": 18704,
+            "ocupacao": 0.156062874251497
+        }
+    }
+}

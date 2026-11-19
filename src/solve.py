@@ -3,6 +3,7 @@ from pathlib import Path
 from src.graphs.io import parse_map, validate_map
 from src.graphs.estados import (
     build_g_est,
+    build_g_pos,
     get_initial_state,
     TARGET_VERTEX,
 )
@@ -20,12 +21,19 @@ from src.graphs.export import (
     export_traps,
     export_path_json,
     export_negative_cycle_json,
+    export_degrees,
+    export_global_metrics,
     format_state,
-    export_degrees
+    build_bonus_id_map
 )
 from src.graphs.metrics import (
+    count_vertex,
+    count_edges,
     in_degree,
     out_degree,
+    directed_density,
+    theoretical_ceiling,
+    state_occupancy,
 )
 
 MAPS = [
@@ -64,17 +72,27 @@ def add_solution(
     ])
 
 
-def collect_dfs_rows(rows, map_name, dfs_result):
+def collect_dfs_rows(
+    rows,
+    map_name,
+    dfs_result,
+    bonus_ids,
+):
     for source, destination, edge_type in dfs_result["edge_types"]:
         rows.append([
             map_name,
-            format_state(source),
-            format_state(destination),
+            format_state(source, bonus_ids),
+            format_state(destination, bonus_ids),
             edge_type,
         ])
 
 
-def export_map_traps(graph, start, map_name):
+def export_map_traps(
+    graph,
+    start,
+    map_name,
+    bonus_ids,
+):
     if map_name not in TRAP_OUTPUTS:
         return
 
@@ -89,10 +107,11 @@ def export_map_traps(graph, start, map_name):
     export_traps(
         traps,
         OUTPUT_DIR / TRAP_OUTPUTS[map_name],
+        bonus_ids,
     )
 
 
-def run_map(map_name, solution_rows, dfs_rows):
+def run_map(map_name, solution_rows, dfs_rows, metrics_data):
     map_path = Path("data/mapas") / f"{map_name}.txt"
 
     grid = parse_map(map_path)
@@ -100,12 +119,21 @@ def run_map(map_name, solution_rows, dfs_rows):
     if not validate_map(grid):
         raise ValueError(f"Mapa inválido: {map_name}")
 
+    bonus_ids = build_bonus_id_map(grid)
+
     graph = build_g_est(grid)
+
+    g_pos = build_g_pos(
+        grid,
+        door_mode="floor",
+    )
+
     export_degrees(
         graph,
         OUTPUT_DIR / f"graus_{map_name}.csv",
         in_degree,
         out_degree,
+        bonus_ids
     )
     start = get_initial_state(grid)
 
@@ -116,6 +144,7 @@ def run_map(map_name, solution_rows, dfs_rows):
     export_edges(
         graph,
         OUTPUT_DIR / f"arestas_{map_name}.csv",
+        bonus_ids
     )
 
     # DFS
@@ -125,6 +154,7 @@ def run_map(map_name, solution_rows, dfs_rows):
         dfs_rows,
         map_name,
         dfs_result,
+        bonus_ids
     )
 
     print(
@@ -133,6 +163,26 @@ def run_map(map_name, solution_rows, dfs_rows):
         "ciclo:",
         dfs_result["has_cycle"],
     )
+
+    ceiling = theoretical_ceiling(grid)
+
+    metrics_data[map_name] = {
+        "g_pos": {
+            "ordem": count_vertex(g_pos),
+            "tamanho": count_edges(g_pos),
+            "densidade": directed_density(g_pos),
+        },
+        "g_est": {
+            "ordem": count_vertex(graph),
+            "tamanho": count_edges(graph),
+            "densidade": directed_density(graph),
+            "teto_teorico": ceiling,
+            "ocupacao": state_occupancy(
+                graph,
+                ceiling,
+            ),
+        },
+    }
 
     # Caso sem ALVO, como m07
     if TARGET_VERTEX not in graph.adjacency:
@@ -165,6 +215,7 @@ def run_map(map_name, solution_rows, dfs_rows):
             graph,
             start,
             map_name,
+            bonus_ids
         )
 
         return
@@ -216,6 +267,7 @@ def run_map(map_name, solution_rows, dfs_rows):
             export_path_json(
                 dijkstra_result,
                 OUTPUT_DIR / "percurso_m03.json",
+                bonus_ids
             )
 
     except ValueError as error:
@@ -267,6 +319,7 @@ def run_map(map_name, solution_rows, dfs_rows):
         export_negative_cycle_json(
             bellman_result,
             OUTPUT_DIR / "ciclo_negativo_m06.json",
+            bonus_ids
         )
 
     # Armadilhas de m04 / m07
@@ -274,10 +327,12 @@ def run_map(map_name, solution_rows, dfs_rows):
         graph,
         start,
         map_name,
+        bonus_ids
     )
 
 
 def main():
+    metrics_data = {}
     solution_rows = []
     dfs_rows = []
 
@@ -286,6 +341,7 @@ def main():
             map_name,
             solution_rows,
             dfs_rows,
+            metrics_data,
         )
 
     export_solutions(
@@ -296,6 +352,11 @@ def main():
     export_dfs_classification(
         dfs_rows,
         OUTPUT_DIR / "dfs_classificacao.csv",
+    )
+
+    export_global_metrics(
+        metrics_data,
+        OUTPUT_DIR / "metricas_global.json",
     )
 
     print(

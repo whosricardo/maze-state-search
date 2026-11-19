@@ -9,7 +9,7 @@ def _prepare_path(path):
     return path
 
 
-def format_state(state):
+def format_state(state, bonus_ids=None):
     if state == "ALVO":
         return "ALVO"
 
@@ -18,15 +18,28 @@ def format_state(state):
 
     keys_label = "".join(sorted(keys)) or "-"
 
+    if consumed_bonus:
+        if bonus_ids is None:
+            raise ValueError(
+                "bonus_ids é necessário para formatar estados com bônus"
+            )
+
+        consumed_ids = sorted(
+            bonus_ids[position]
+            for position in consumed_bonus
+        )
+    else:
+        consumed_ids = []
+
     bonus_label = "{" + ",".join(
-        str(bonus)
-        for bonus in sorted(consumed_bonus)
+        str(bonus_id)
+        for bonus_id in consumed_ids
     ) + "}"
 
     return f"({row},{column})|{keys_label}|{bonus_label}"
 
 
-def export_edges(graph, path):
+def export_edges(graph, path, bonus_ids=None):
     path = _prepare_path(path)
 
     with open(path, "w", newline="", encoding="utf-8") as file:
@@ -41,8 +54,8 @@ def export_edges(graph, path):
         for source, neighbors in graph.adjacency.items():
             for destination, cost in neighbors.items():
                 writer.writerow([
-                    format_state(source),
-                    format_state(destination),
+                    format_state(source, bonus_ids),
+                    format_state(destination, bonus_ids),
                     cost,
                 ])
 
@@ -80,32 +93,63 @@ def export_dfs_classification(rows, path):
         writer.writerows(rows)
 
 
-def export_traps(traps, path):
+def export_traps(traps, path, bonus_ids=None):
+    path = _prepare_path(path)
+
+    with open(path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(["estado"])
+
+        for trap in sorted(
+            traps,
+            key=lambda state: format_state(state, bonus_ids),
+        ):
+            writer.writerow([
+                format_state(trap, bonus_ids)
+            ])
+
+
+def export_degrees(
+    graph,
+    path,
+    in_degree_fn,
+    out_degree_fn,
+    bonus_ids=None,
+):
     path = _prepare_path(path)
 
     with open(path, "w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
 
-        writer.writerow(["estado"])
+        writer.writerow([
+            "estado",
+            "grau_entrada",
+            "grau_saida",
+        ])
 
-        for trap in sorted(traps, key=format_state):
+        for vertex in graph.adjacency:
             writer.writerow([
-                format_state(trap)
+                format_state(vertex, bonus_ids),
+                in_degree_fn(graph, vertex),
+                out_degree_fn(graph, vertex),
             ])
 
 
-def export_path_json(result, path):
+def export_path_json(result, path, bonus_ids=None):
     path = _prepare_path(path)
 
-    path_states = result.get("path")
+    states = result.get("path")
 
     data = {
         "status": result["status"],
         "custo": result.get("cost"),
         "passos": result.get("steps"),
         "caminho": (
-            [format_state(state) for state in path_states]
-            if path_states
+            [
+                format_state(state, bonus_ids)
+                for state in states
+            ]
+            if states
             else None
         ),
     }
@@ -119,7 +163,11 @@ def export_path_json(result, path):
         )
 
 
-def export_negative_cycle_json(result, path):
+def export_negative_cycle_json(
+    result,
+    path,
+    bonus_ids=None,
+):
     path = _prepare_path(path)
 
     cycle = result.get("cycle")
@@ -127,7 +175,10 @@ def export_negative_cycle_json(result, path):
     data = {
         "status": result["status"],
         "ciclo": (
-            [format_state(state) for state in cycle]
+            [
+                format_state(state, bonus_ids)
+                for state in cycle
+            ]
             if cycle
             else None
         ),
@@ -142,21 +193,26 @@ def export_negative_cycle_json(result, path):
         )
 
 
-def export_degrees(graph, path, in_degree_fn, out_degree_fn):
+def export_global_metrics(data, path):
     path = _prepare_path(path)
 
-    with open(path, "w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
+    with open(path, "w", encoding="utf-8") as file:
+        json.dump(
+            data,
+            file,
+            indent=4,
+            ensure_ascii=False,
+        )
 
-        writer.writerow([
-            "estado",
-            "grau_entrada",
-            "grau_saida",
-        ])
 
-        for vertex in graph.adjacency:
-            writer.writerow([
-                format_state(vertex),
-                in_degree_fn(graph, vertex),
-                out_degree_fn(graph, vertex),
-            ])
+def build_bonus_id_map(grid):
+    bonus_ids = {}
+    next_id = 0
+
+    for row_index, row in enumerate(grid):
+        for column_index, cell in enumerate(row):
+            if cell == "+":
+                bonus_ids[(row_index, column_index)] = next_id
+                next_id += 1
+
+    return bonus_ids
