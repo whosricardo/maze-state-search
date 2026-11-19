@@ -21,8 +21,12 @@ from src.graphs.export import (
     export_path_json,
     export_negative_cycle_json,
     format_state,
+    export_degrees
 )
-
+from src.graphs.metrics import (
+    in_degree,
+    out_degree,
+)
 
 MAPS = [
     "m01_terreno",
@@ -97,6 +101,12 @@ def run_map(map_name, solution_rows, dfs_rows):
         raise ValueError(f"Mapa inválido: {map_name}")
 
     graph = build_g_est(grid)
+    export_degrees(
+        graph,
+        OUTPUT_DIR / f"graus_{map_name}.csv",
+        in_degree,
+        out_degree,
+    )
     start = get_initial_state(grid)
 
     print(f"\n=== {map_name} ===")

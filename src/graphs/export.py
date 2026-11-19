@@ -140,3 +140,23 @@ def export_negative_cycle_json(result, path):
             indent=4,
             ensure_ascii=False,
         )
+
+
+def export_degrees(graph, path, in_degree_fn, out_degree_fn):
+    path = _prepare_path(path)
+
+    with open(path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+
+        writer.writerow([
+            "estado",
+            "grau_entrada",
+            "grau_saida",
+        ])
+
+        for vertex in graph.adjacency:
+            writer.writerow([
+                format_state(vertex),
+                in_degree_fn(graph, vertex),
+                out_degree_fn(graph, vertex),
+            ])
