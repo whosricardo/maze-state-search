@@ -79,3 +79,80 @@ def state_occupancy(graph: Graph, ceiling):
         return 0.0
 
     return reachable_states / ceiling
+
+
+def analyze_layers(graph):
+    layer_states = {}
+
+    for state in graph.adjacency:
+        if state == "ALVO":
+            continue
+
+        position, keys, consumed_bonus = state
+
+        keys_label = "".join(sorted(keys))
+        layer_name = keys_label if keys_label else "-"
+
+        if layer_name not in layer_states:
+            layer_states[layer_name] = set()
+
+        layer_states[layer_name].add(state)
+
+    layer_edges = {
+        layer: 0
+        for layer in layer_states
+    }
+
+    transitions = []
+
+    for source, neighbors in graph.adjacency.items():
+        if source == "ALVO":
+            continue
+
+        source_pos, source_keys, _ = source
+
+        source_label = "".join(sorted(source_keys))
+        source_layer = source_label if source_label else "-"
+
+        for destination in neighbors:
+            if destination == "ALVO":
+                continue
+
+            dest_pos, dest_keys, _ = destination
+
+            dest_label = "".join(sorted(dest_keys))
+            dest_layer = dest_label if dest_label else "-"
+
+            if source_layer == dest_layer:
+                layer_edges[source_layer] += 1
+
+            else:
+                transitions.append({
+                    "origem": source_layer,
+                    "destino": dest_layer,
+                    "posicao": list(dest_pos),
+                })
+
+    result = {
+        "camadas": {},
+        "arcos_entre_camadas": transitions,
+    }
+
+    for layer, states in layer_states.items():
+        vertex_count = len(states)
+        edge_count = layer_edges[layer]
+
+        if vertex_count > 1:
+            density = edge_count / (
+                vertex_count * (vertex_count - 1)
+            )
+        else:
+            density = 0.0
+
+        result["camadas"][layer] = {
+            "ordem": vertex_count,
+            "tamanho": edge_count,
+            "densidade": density,
+        }
+
+    return result

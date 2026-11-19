@@ -1,0 +1,219 @@
+{
+    "m01_terreno": {
+        "camadas": {
+            "-": {
+                "ordem": 24,
+                "tamanho": 46,
+                "densidade": 0.08333333333333333
+            }
+        },
+        "arcos_entre_camadas": []
+    },
+    "m02_uma_chave": {
+        "camadas": {
+            "-": {
+                "ordem": 16,
+                "tamanho": 30,
+                "densidade": 0.125
+            },
+            "a": {
+                "ordem": 23,
+                "tamanho": 43,
+                "densidade": 0.08498023715415019
+            }
+        },
+        "arcos_entre_camadas": [
+            {
+                "origem": "-",
+                "destino": "a",
+                "posicao": [
+                    3,
+                    11
+                ]
+            }
+        ]
+    },
+    "m03_tres_chaves": {
+        "camadas": {
+            "-": {
+                "ordem": 12,
+                "tamanho": 22,
+                "densidade": 0.16666666666666666
+            },
+            "a": {
+                "ordem": 53,
+                "tamanho": 114,
+                "densidade": 0.041364296081277216
+            },
+            "ab": {
+                "ordem": 72,
+                "tamanho": 160,
+                "densidade": 0.03129890453834116
+            },
+            "abc": {
+                "ordem": 76,
+                "tamanho": 167,
+                "densidade": 0.029298245614035087
+            }
+        },
+        "arcos_entre_camadas": [
+            {
+                "origem": "-",
+                "destino": "a",
+                "posicao": [
+                    8,
+                    1
+                ]
+            },
+            {
+                "origem": "a",
+                "destino": "ab",
+                "posicao": [
+                    1,
+                    12
+                ]
+            },
+            {
+                "origem": "ab",
+                "destino": "abc",
+                "posicao": [
+                    6,
+                    6
+                ]
+            }
+        ]
+    },
+    "m04_esteiras": {
+        "camadas": {
+            "-": {
+                "ordem": 17,
+                "tamanho": 30,
+                "densidade": 0.11029411764705882
+            },
+            "a": {
+                "ordem": 20,
+                "tamanho": 35,
+                "densidade": 0.09210526315789473
+            }
+        },
+        "arcos_entre_camadas": [
+            {
+                "origem": "-",
+                "destino": "a",
+                "posicao": [
+                    3,
+                    11
+                ]
+            }
+        ]
+    },
+    "m05_bonus": {
+        "camadas": {
+            "-": {
+                "ordem": 215,
+                "tamanho": 438,
+                "densidade": 0.009519669637035428
+            }
+        },
+        "arcos_entre_camadas": []
+    },
+    "m06_fonte": {
+        "camadas": {
+            "-": {
+                "ordem": 24,
+                "tamanho": 46,
+                "densidade": 0.08333333333333333
+            }
+        },
+        "arcos_entre_camadas": []
+    },
+    "m07_impossivel": {
+        "camadas": {
+            "-": {
+                "ordem": 16,
+                "tamanho": 38,
+                "densidade": 0.15833333333333333
+            }
+        },
+        "arcos_entre_camadas": []
+    },
+    "m08_grande": {
+        "camadas": {
+            "-": {
+                "ordem": 165,
+                "tamanho": 356,
+                "densidade": 0.013155949741315596
+            },
+            "a": {
+                "ordem": 314,
+                "tamanho": 670,
+                "densidade": 0.006817118088764983
+            },
+            "ab": {
+                "ordem": 442,
+                "tamanho": 940,
+                "densidade": 0.004822441797231713
+            },
+            "abc": {
+                "ordem": 829,
+                "tamanho": 1818,
+                "densidade": 0.0026485550951906435
+            },
+            "abcd": {
+                "ordem": 1169,
+                "tamanho": 2574,
+                "densidade": 0.001885172902726836
+            }
+        },
+        "arcos_entre_camadas": [
+            {
+                "origem": "-",
+                "destino": "a",
+                "posicao": [
+                    27,
+                    5
+                ]
+            },
+            {
+                "origem": "-",
+                "destino": "a",
+                "posicao": [
+                    27,
+                    5
+                ]
+            },
+            {
+                "origem": "a",
+                "destino": "ab",
+                "posicao": [
+                    3,
+                    23
+                ]
+            },
+            {
+                "origem": "ab",
+                "destino": "abc",
+                "posicao": [
+                    5,
+                    37
+                ]
+            },
+            {
+                "origem": "ab",
+                "destino": "abc",
+                "posicao": [
+                    5,
+                    37
+                ]
+            },
+            {
+                "origem": "abc",
+                "destino": "abcd",
+                "posicao": [
+                    3,
+                    29
+                ]
+            }
+        ]
+    }
+}

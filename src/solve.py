@@ -24,7 +24,8 @@ from src.graphs.export import (
     export_degrees,
     export_global_metrics,
     format_state,
-    build_bonus_id_map
+    build_bonus_id_map,
+    export_layers
 )
 from src.graphs.metrics import (
     count_vertex,
@@ -34,6 +35,7 @@ from src.graphs.metrics import (
     directed_density,
     theoretical_ceiling,
     state_occupancy,
+    analyze_layers
 )
 
 MAPS = [
@@ -111,7 +113,7 @@ def export_map_traps(
     )
 
 
-def run_map(map_name, solution_rows, dfs_rows, metrics_data):
+def run_map(map_name, solution_rows, dfs_rows, metrics_data, layers_data):
     map_path = Path("data/mapas") / f"{map_name}.txt"
 
     grid = parse_map(map_path)
@@ -122,6 +124,8 @@ def run_map(map_name, solution_rows, dfs_rows, metrics_data):
     bonus_ids = build_bonus_id_map(grid)
 
     graph = build_g_est(grid)
+
+    layers_data[map_name] = analyze_layers(graph)
 
     g_pos = build_g_pos(
         grid,
@@ -183,6 +187,8 @@ def run_map(map_name, solution_rows, dfs_rows, metrics_data):
             ),
         },
     }
+
+    layers_data[map_name] = analyze_layers(graph)
 
     # Caso sem ALVO, como m07
     if TARGET_VERTEX not in graph.adjacency:
@@ -335,6 +341,7 @@ def main():
     metrics_data = {}
     solution_rows = []
     dfs_rows = []
+    layers_data = {}
 
     for map_name in MAPS:
         run_map(
@@ -342,6 +349,7 @@ def main():
             solution_rows,
             dfs_rows,
             metrics_data,
+            layers_data
         )
 
     export_solutions(
@@ -357,6 +365,11 @@ def main():
     export_global_metrics(
         metrics_data,
         OUTPUT_DIR / "metricas_global.json",
+    )
+
+    export_layers(
+        layers_data,
+        OUTPUT_DIR / "camadas.json",
     )
 
     print(

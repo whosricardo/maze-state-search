@@ -216,3 +216,15 @@ def build_bonus_id_map(grid):
                 next_id += 1
 
     return bonus_ids
+
+
+def export_layers(data, path):
+    path = _prepare_path(path)
+
+    with open(path, "w", encoding="utf-8") as file:
+        json.dump(
+            data,
+            file,
+            indent=4,
+            ensure_ascii=False,
+        )
