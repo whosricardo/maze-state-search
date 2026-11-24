@@ -132,6 +132,7 @@ class Viewer:
         self.list_scroll = 0
         self.side_scroll = 0
         self.panel_scroll = 0
+        self.show_metric_details = False
         self.panel_content_h = 0
 
         if initial is not None:
@@ -492,7 +493,8 @@ class Viewer:
         width, height = surf.get_size()
         top = pygame.Rect(0, 0, width, px(58))
         tabs = pygame.Rect(0, top.bottom, width, px(46))
-        metrics = pygame.Rect(0, height - px(155), width, px(155))
+        metrics_height = min(px(155), max(px(98), height // 5))
+        metrics = pygame.Rect(0, height - metrics_height, width, metrics_height)
         playback = pygame.Rect(0, metrics.y - px(96), width, px(96))
         side = pygame.Rect(0, tabs.bottom, px(256), playback.y - tabs.bottom)
         center = pygame.Rect(side.right, tabs.bottom, width - side.right, side.h)
@@ -726,7 +728,13 @@ class Viewer:
                 left = rect.x + (index % 2) * (rect.w // 2)
                 top = rect.y + (index // 2) * (rect.h // 2)
                 area = pygame.Rect(left, top, rect.w // 2, rect.h // 2)
+                clip = surf.get_clip()
+                original_ui_clip = ui.clip
+                surf.set_clip(clip.clip(area))
+                ui.clip = area
                 self.draw_board(surf, ui, board, run, area)
+                surf.set_clip(clip)
+                ui.clip = original_ui_clip
                 hit = board.rect.clip(area)
                 if ui.hover(hit) and ui.pressed:
                     ui.active = ("focus-board", index)
@@ -767,7 +775,7 @@ class Viewer:
                             area.bottom - header.bottom - px(22))
         if inner.w < px(12) or inner.h < px(12):
             return
-        board.fit(inner)
+        board.fit(inner, min_cell=1 if self.compare_all else 3)
         frame_rect = board.rect.inflate(px(10), px(10))
         rrect(surf, (8, 8, 10), frame_rect.move(0, px(4)), 8)
         rrect(surf, (14, 14, 17), frame_rect, 8)
@@ -780,6 +788,10 @@ class Viewer:
             r = text(surf, MODELS[run.model], Fonts.get(13), T.TEXT_DIM, (r.right + px(10), header.centery), "midleft")
         chip = self.status_chip(surf, r.right + px(12), header.centery, run.status)
         parts = []
+        if self.compare_all:
+            length = len(run.explore) if self.explore_mode else len(run.frames)
+            if length:
+                parts.append(f"passo {min(int(self.player.pos), length - 1)}/{length - 1}")
         if run.loop:
             parts.append(f"volta {self.player.laps + 1}")
             parts.append(f"{fmt_num(run.path_cost)}/volta")
@@ -796,7 +808,7 @@ class Viewer:
         empty = (not run.explore) if self.explore_mode else (not run.frames)
         if (empty or (not self.explore_mode and run.status in ("Recusado", "Sem Caminho"))) and run.message:
             msg_font = Fonts.get(14)
-            lines = wrap(run.message, msg_font, min(px(420), board.rect.w - px(20)))
+            lines = wrap(run.message, msg_font, max(px(80), min(px(420), board.rect.w - px(20))))
             bw = max(msg_font.size(line)[0] for line in lines) + px(40)
             bh = len(lines) * msg_font.get_linesize() + px(52)
             box = pygame.Rect(0, 0, bw, bh)
@@ -933,7 +945,7 @@ class Viewer:
         text(surf, "algoritmo", font, T.TEXT_FAINT, (cols[0], y))
         text(surf, "status", font, T.TEXT_FAINT, (cols[1], y))
         text(surf, "mov.", font, T.TEXT_FAINT, (cols[2], y))
-        text(surf, "custo", font, T.TEXT_FAINT, (cols[3], y), "topright")
+        text(surf, "custo · tempo", font, T.TEXT_FAINT, (cols[3], y), "topright")
         y += px(20)
         for run in runs:
             name = run.algorithm
@@ -947,7 +959,8 @@ class Viewer:
             moves = run.moves if (run.frames and not run.loop) else "—"
             cost = f"{fmt_num(run.path_cost)}/volta" if run.loop else fmt_num(run.path_cost)
             text(surf, str(moves), Fonts.get(13), T.TEXT, (cols[2], y))
-            text(surf, cost, Fonts.get(13, bold=True), T.TEXT, (cols[3], y), "topright")
+            text(surf, f"{cost} · {run.elapsed_ms:.2f} ms", Fonts.get(12), T.TEXT,
+                 (cols[3], y), "topright")
             y += px(26)
         y += px(6)
 
@@ -1048,8 +1061,18 @@ class Viewer:
         else:
             first = y
         second = self.panel_result(surf, x + w + px(10), y, w, runs)
-        third = self.panel_metrics(surf, x + 2 * (w + px(10)), y, w)
-        third = self.panel_layers(surf, ui, x + 2 * (w + px(10)), third, w)
+        details_x = x + 2 * (w + px(10))
+        third = self.panel_metrics(surf, details_x, y, w)
+        button = pygame.Rect(details_x, third, w, px(30))
+        label = "Recolher camadas e graus" if self.show_metric_details else "Ver camadas e graus"
+        if ui.button(surf, "metric-details", button, label, align="left", size=13):
+            self.show_metric_details = not self.show_metric_details
+        third = button.bottom + px(9)
+        if self.show_metric_details:
+            third = self.panel_layers(surf, ui, details_x, third, w)
+            path = OUT_DIR / f"graus_{self.session.name}.csv"
+            if path.is_file():
+                third = self.kv(surf, details_x, third, w, "Graus por estado", path.name)
         self.panel_content_h = max(first, second, third) - y
         surf.set_clip(None)
         ui.clip = None
