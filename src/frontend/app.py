@@ -107,6 +107,8 @@ class App:
         self.toasts = self.toasts[-4:]
 
     def open_menu(self):
+        if self.current is self.reddit and self.reddit.running:
+            self.reddit.stop()
         self.menu.entered = True
         self.pending = self.menu
 
@@ -152,6 +154,8 @@ class App:
             if self.pending is not None:
                 self.current = self.pending
                 self.pending = None
+        if self.reddit is not None:
+            self.reddit.stop()
         self.viewer.compare_executor.shutdown(wait=False, cancel_futures=True)
         pygame.quit()
 

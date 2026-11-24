@@ -1,15 +1,18 @@
 # [IA] Codex – suporte de sintaxe Pygame para exibir resultados e figuras da equipe
 import json
+import multiprocessing
 from pathlib import Path
 
 import pygame
 
 from src.frontend import theme as T
 from src.frontend.theme import Fonts, px
-from src.frontend.widgets import text, text_fit, wrap
+from src.frontend.widgets import TextInput, text, text_fit, wrap
+from src.frontend.reddit_worker import serve
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "out" / "parte2"
+DATASET = ROOT / "data" / "dataset_parte2" / "soc-redditHyperlinks-body.tsv"
 ALGORITHMS = {"bfs": "BFS", "dfs": "DFS", "dijkstra": "Dijkstra", "bellman_ford": "Bellman-Ford"}
 FIGURES = {
     "comparacao_algoritmos": ("Comparação dos algoritmos", None),
@@ -39,6 +42,15 @@ class RedditScreen:
         self.max_scroll = 0
         self.images = {}
         self.report_error = None
+        self.process = None
+        self.channel = None
+        self.communities = ()
+        self.community_set = set()
+        self.origin = TextInput(placeholder="Origem")
+        self.destination = TextInput(placeholder="Destino")
+        self.running = False
+        self.live_error = None
+        self.result = None
         try:
             self.report = json.loads((OUT / "parte2_report.json").read_text(encoding="utf-8"))
         except (OSError, ValueError) as error:
@@ -46,13 +58,88 @@ class RedditScreen:
             self.report_error = str(error)
 
     def handle_event(self, event):
+        if self.mode == "live" and (self.origin.handle_event(event) or self.destination.handle_event(event)):
+            return
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.app.open_menu()
 
+    # [IA] Codex – controles de consulta e polling sem bloquear a janela
     def update(self, dt):
-        pass
+        if self.channel is None:
+            return
+        try:
+            if self.channel.poll():
+                kind, value = self.channel.recv()
+                self.running = False
+                if kind == "ready":
+                    self.communities = tuple(value)
+                    self.community_set = set(value)
+                elif kind == "result":
+                    self.result = value
+                elif kind == "load_error":
+                    self.stop()
+                    self.live_error = value
+                else:
+                    self.live_error = value
+        except (EOFError, OSError):
+            self.stop()
+            self.live_error = "A consulta foi interrompida."
+
+    def start(self):
+        self.live_error = None
+        self.result = None
+        ctx = multiprocessing.get_context("spawn")
+        parent, child = ctx.Pipe()
+        self.process = ctx.Process(target=serve, args=(child, DATASET), daemon=True)
+        try:
+            self.process.start()
+        except (OSError, RuntimeError) as error:
+            parent.close()
+            self.process = None
+            self.live_error = str(error)
+        else:
+            self.channel = parent
+            self.running = True
+        finally:
+            child.close()
+
+    def stop(self):
+        if self.channel is not None:
+            self.channel.close()
+            self.channel = None
+        if self.process is not None:
+            if self.process.is_alive():
+                self.process.terminate()
+            self.process.join(timeout=0.1)
+            if self.process.is_alive():
+                self.process.kill()
+                self.process.join(timeout=0.1)
+            self.process = None
+        self.running = False
+        self.communities = ()
+        self.community_set.clear()
+
+    def query(self):
+        origin, destination = self.origin.value.lower(), self.destination.value.lower()
+        optional = self.algorithm in ("bfs", "dfs")
+        self.result = None
+        if origin not in self.community_set or (destination not in self.community_set and not (optional and not destination)):
+            self.live_error = "Selecione comunidades do dataset nos campos da consulta."
+            return
+        self.live_error = None
+        try:
+            self.channel.send((self.algorithm, origin, destination))
+            self.running = True
+        except (OSError, EOFError):
+            self.stop()
+            self.live_error = "A consulta foi interrompida."
+
 
     def choose(self, mode=None, algorithm=None):
+        if self.running and (mode is not None or algorithm is not None):
+            self.stop()
+        self.result = None
+        self.live_error = None
         if mode is not None:
             self.mode = mode
         if algorithm is not None:
@@ -91,12 +178,68 @@ class RedditScreen:
         ui.clip = None
 
     def modes(self):
-        return (("saved", "Casos salvos"), ("figures", "Figuras e notas"))
+        return (("saved", "Casos salvos"), ("figures", "Figuras e notas"), ("live", "Consulta ao vivo"))
 
     def draw_content(self, surf, ui, box, y):
         if self.mode == "figures":
             return self.draw_figure(surf, ui, box, y)
+        if self.mode == "live":
+            return self.draw_live(surf, ui, box, y)
         return self.draw_saved(surf, ui, box, y)
+
+    def draw_live(self, surf, ui, box, y):
+        if not DATASET.is_file():
+            y = self.paragraph(surf, box, y, "Dataset local indisponível.", T.WARN)
+            return self.paragraph(surf, box, y, "Execute python scripts/download_reddit_dataset.py")
+        if self.running:
+            message = "Executando consulta…" if self.communities else "Carregando o dataset…"
+            y = self.paragraph(surf, box, y, message)
+            if ui.button(surf, "cancel-query", pygame.Rect(box.x, y, px(120), px(34)), "Cancelar"):
+                self.stop()
+            return y + px(44)
+        if self.live_error:
+            y = self.paragraph(surf, box, y, self.live_error, T.ERR)
+        if not self.communities:
+            if ui.button(surf, "load-live", pygame.Rect(box.x, y, px(165), px(34)), "Carregar dataset"):
+                self.start()
+            return y + px(44)
+
+        optional = self.algorithm in ("bfs", "dfs")
+        self.destination.placeholder = "Destino opcional" if optional else "Destino"
+        if self.algorithm == "dijkstra":
+            y = self.paragraph(surf, box, y, "Grafo com pesos transformados")
+        elif self.algorithm == "bellman_ford":
+            y = self.paragraph(surf, box, y, "Grafo com pesos originais agregados")
+        field_width = (box.w - px(16)) // 2
+        for index, (key, field) in enumerate((("origin", self.origin), ("destination", self.destination))):
+            rect = pygame.Rect(box.x + index * (field_width + px(16)), y, field_width, px(35))
+            was_focused = field.focused
+            field.draw(ui, surf, rect)
+            suggestion_area = pygame.Rect(rect.x, rect.bottom, rect.w, px(120))
+            if was_focused and ui.hover(suggestion_area):
+                field.focused = True
+            if not field.value or field.value.lower() in self.community_set:
+                continue
+            if field.focused:
+                from bisect import bisect_left
+                prefix = field.value.lower()
+                start = bisect_left(self.communities, prefix)
+                for row, name in enumerate(self.communities[start:start + 4]):
+                    if not name.startswith(prefix):
+                        break
+                    option = pygame.Rect(rect.x, rect.bottom + px(4 + row * 29), rect.w, px(27))
+                    if ui.hover(option) and ui.pressed:
+                        ui.active = ("community", key, name)
+                    if ui.button(surf, ("community", key, name), option, name, align="left", size=13):
+                        field.value = name
+                        field.focused = False
+        y += px(160)
+        if ui.button(surf, "run-live", pygame.Rect(box.x, y, px(120), px(34)), "Executar", style="accent"):
+            self.query()
+        y += px(45)
+        if self.result:
+            y = self.draw_values(surf, box, y, self.result)
+        return y
 
     def paragraph(self, surf, box, y, value, color=T.TEXT):
         font = Fonts.get(15)
