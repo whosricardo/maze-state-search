@@ -129,7 +129,10 @@ class Viewer:
         self.player = Player()
         self.speeds = {"path": 5.0, "explore": 45.0}
         self.show_help = False
-        self.list_scroll = 0
+        self.sidebar_open = None
+        self.maps_open = False
+        self.more_open = False
+        self.side_content_h = 0
         self.side_scroll = 0
         self.panel_scroll = 0
         self.show_metric_details = False
@@ -352,7 +355,9 @@ class Viewer:
                 self.show_help = False
             return
         if key == pygame.K_ESCAPE:
-            if self.focus_board is not None:
+            if self.more_open:
+                self.more_open = False
+            elif self.focus_board is not None:
                 self.focus_board = None
             else:
                 self.app.open_menu()
@@ -488,40 +493,42 @@ class Viewer:
         return d
 
     # -------------------------------------------------------------- desenho
-    # [IA] Codex – sintaxe Pygame para abas e métricas abaixo do tabuleiro
+    # [IA] Codex – layout da barra única e do painel lateral
     def draw(self, surf, ui):
         width, height = surf.get_size()
-        top = pygame.Rect(0, 0, width, px(58))
-        tabs = pygame.Rect(0, top.bottom, width, px(46))
-        options = pygame.Rect(0, tabs.bottom, width, px(40))
+        if self.sidebar_open is None:
+            self.sidebar_open = width >= px(1024) and height >= px(700)
+        top = pygame.Rect(0, 0, width, px(54))
         metrics_height = min(px(155), max(px(98), height // 5))
         metrics = pygame.Rect(0, height - metrics_height, width, metrics_height)
         playback = pygame.Rect(0, metrics.y - px(96), width, px(96))
-        side = pygame.Rect(0, options.bottom, px(256), playback.y - options.bottom)
-        center = pygame.Rect(side.right, options.bottom, width - side.right, side.h)
 
         surf.fill(T.BG)
         ui.blocked = self.show_help
-        self.draw_top(surf, ui, top)
-        names = ALGORITHMS
-        for index, name in enumerate(names):
-            bw = min(px(145), (width - px(182)) // len(names))
-            tab = pygame.Rect(px(12) + index * bw, tabs.y + px(5), bw - px(5), px(34))
-            if ui.button(surf, ("tab", name), tab, name, active=self.algo == name and not self.compare_all, size=13):
-                self.set_algo(name)
-        if ui.button(surf, "all-runs", pygame.Rect(width-px(168), tabs.y+px(5), px(156), px(34)),
-                     "Comparar os quatro", active=self.compare_all, size=13):
-            self.toggle("compare_all")
-        self.draw_options(surf, ui, options)
-        surf.set_clip(side)
-        ui.clip = side
-        if ui.hover(side) and ui.wheel:
-            self.side_scroll = max(0, min(px(750) - side.h, self.side_scroll - ui.wheel * px(48)))
-        self.draw_side(surf, ui, pygame.Rect(side.x, side.y - self.side_scroll, side.w, side.h + self.side_scroll))
+        more_button = self.draw_top(surf, ui, top)
+        ui.blocked = self.show_help or self.more_open
+        side_width = min(px(256), width // 3) if self.sidebar_open else 0
+        side = pygame.Rect(0, top.bottom, side_width, max(0, playback.y - top.bottom))
+        center = pygame.Rect(side.right, top.bottom, width - side.right, side.h)
+
+        if side_width:
+            pygame.draw.rect(surf, T.PANEL, side)
+            pygame.draw.line(surf, T.BORDER, side.topright, side.bottomright)
+            surf.set_clip(side)
+            ui.clip = side
+            if ui.hover(side) and ui.wheel:
+                self.side_scroll -= ui.wheel * px(48)
+            self.side_scroll = max(0, min(self.side_scroll, self.side_content_h - side.h))
+            content = pygame.Rect(side.x, side.y - self.side_scroll, side.w, side.h)
+            self.side_content_h = self.draw_side(surf, ui, content) - content.y
         surf.set_clip(center)
         ui.clip = center
         if self.session is not None:
-            self.draw_center(surf, ui, center)
+            model_font = Fonts.get(12)
+            text(surf, text_fit(MODELS[self.model], model_font, center.w - px(24)),
+                 model_font, T.TEXT_DIM, (center.x + px(12), center.y + px(8)))
+            body = pygame.Rect(center.x, center.y + px(24), center.w, max(0, center.h - px(24)))
+            self.draw_center(surf, ui, body)
         else:
             text(surf, "Nenhum mapa válido encontrado", Fonts.get(16), T.TEXT_DIM, center.center, "center")
         surf.set_clip(None)
@@ -529,79 +536,64 @@ class Viewer:
         self.draw_bottom(surf, ui, playback)
         self.draw_right(surf, ui, metrics)
         ui.blocked = False
+        if self.more_open and not self.show_help:
+            self.draw_more(surf, ui, more_button)
         if self.show_help:
             self.draw_help(surf, ui)
 
-    # ---------------------------------------------------------------- topo
     def draw_top(self, surf, ui, rect):
         pygame.draw.rect(surf, T.PANEL, rect)
-        pygame.draw.line(surf, T.BORDER, rect.bottomleft, (rect.right, rect.bottom), 1)
-        # "logo": três camadas empilhadas
-        lx, ly = rect.x + px(20), rect.centery
-        for k, col in enumerate((T.ACCENT, (255, 160, 90), (255, 214, 170))):
-            r = pygame.Rect(0, 0, px(22), px(9))
-            r.center = (lx + px(11), ly + px(7) - k * px(7))
-            rrect(surf, col, r, 3)
-        r = text(surf, "Labirinto de Estados", Fonts.get(18, bold=True), T.TEXT, (lx + px(34), ly), "midleft")
-        r = text(surf, "Teoria dos Grafos · Parte 1", Fonts.get(13), T.TEXT_FAINT, (r.right + px(12), ly + px(1)), "midleft")
+        pygame.draw.line(surf, T.BORDER, (0, rect.bottom - 1), (rect.right, rect.bottom - 1))
+        x = px(10)
+        y = rect.y + px(10)
+        menu = pygame.Rect(x, y, px(57), px(34))
+        if ui.button(surf, ("top", "menu"), menu, "Menu", tooltip="Voltar ao menu (Esc)"):
+            self.more_open = False
+            self.app.open_menu()
+        title = text(surf, "Parte 1", Fonts.get(15, bold=True), T.TEXT,
+                     (menu.right + px(10), rect.centery), "midleft")
+        more = pygame.Rect(rect.right - px(59), y, px(49), px(34))
+        controls = pygame.Rect(more.x - px(89), y, px(83), px(34))
+        short = rect.w < px(1000)
+        compare_width = px(99 if short else 150)
+        compare = pygame.Rect(controls.x - compare_width - px(6), y, compare_width, px(34))
+        bw = min(px(145), max(1, (compare.x - title.right - px(18)) // len(ALGORITHMS)))
+        for index, name in enumerate(ALGORITHMS):
+            tab = pygame.Rect(title.right + px(9) + index * bw, y, max(1, bw - px(4)), px(34))
+            label = text_fit(name, Fonts.get(13), max(1, tab.w - px(8)))
+            if ui.button(surf, ("tab", name), tab, label, tooltip=name, size=13,
+                         active=self.algo == name and not self.compare_all):
+                self.more_open = False
+                self.set_algo(name)
+        if ui.button(surf, "all-runs", compare, "Comparar 4" if short else "Comparar os quatro",
+                     tooltip="Comparar os quatro", active=self.compare_all, size=13):
+            self.more_open = False
+            self.toggle("compare_all")
+        if ui.button(surf, "sidebar", controls, "Controles", active=self.sidebar_open, size=13,
+                     tooltip="Recolher lateral" if self.sidebar_open else "Abrir lateral"):
+            self.more_open = False
+            self.sidebar_open = not self.sidebar_open
+        if ui.button(surf, "more", more, "Mais", active=self.more_open, size=13):
+            self.more_open = not self.more_open
+        return more
 
-        if self.session is not None:
-            s = self.session
-            tag = self.entries[self.index][1] if 0 <= self.index < len(self.entries) else ""
-            chip_text = f"{s.name}   {s.rows}×{s.cols}   {len(s.map_keys)} chave(s)"
-            font = Fonts.get(13, bold=True)
-            cw = font.size(chip_text)[0] + px(28)
-            chip = pygame.Rect(0, 0, cw, px(30))
-            chip.midleft = (r.right + px(28), ly)
-            if chip.right > rect.right - px(440):
-                chip.x = rect.right
-            if chip.x < rect.right:
-                rrect(surf, T.PANEL_2, chip, 15)
-            pygame.draw.circle(surf, T.ACCENT if tag == "fornecido" else T.OK, (chip.x + px(14), chip.centery), px(4))
-            text(surf, chip_text, font, T.TEXT, (chip.x + px(24), chip.centery), "midleft")
+    def draw_more(self, surf, ui, button):
+        box = pygame.Rect(button.right - px(172), button.bottom + px(6), px(172), px(109))
+        if ui.pressed and not box.collidepoint(ui.mouse) and not button.collidepoint(ui.mouse):
+            self.more_open = False
+            return
+        rrect(surf, T.PANEL_2, box, 6)
+        rrect(surf, T.BORDER, box, 6, 1)
+        actions = (("Editor de mapas", self.app.open_editor),
+                   ("Exportar PNG", self.export_png), ("Ajuda", self.open_help))
+        for index, (label, action) in enumerate(actions):
+            rect = pygame.Rect(box.x + px(5), box.y + px(5 + index * 33), box.w - px(10), px(32))
+            if ui.button(surf, ("more-action", index), rect, label, style="ghost", align="left"):
+                self.more_open = False
+                action()
 
-        bx = rect.right - px(16)
-        for label, action, style, tip in (
-            ("Menu", "menu", "default", "Voltar ao menu (Esc)"),
-            ("?", "help", "default", "Atalhos de teclado (F1)"),
-            ("Editor de mapas", "editor", "default", "Criar e testar mapas do grupo (E)"),
-            ("Exportar PNG", "png", "accent", "Salva o percurso atual em out/parte1/ com cor por camada (P)"),
-        ):
-            w = px(36) if label == "?" else Fonts.get(13, bold=True).size(label)[0] + px(28)
-            b = pygame.Rect(0, 0, w, px(34))
-            b.midright = (bx, rect.centery)
-            bx = b.x - px(8)
-            if ui.button(surf, ("top", action), b, label, style=style, tooltip=tip, size=13, bold=True):
-                if action == "menu":
-                    self.app.open_menu()
-                elif action == "help":
-                    self.show_help = True
-                elif action == "editor":
-                    self.app.open_editor()
-                else:
-                    self.export_png()
-
-    # ---------------------------------------------------------------- lateral
-    # [IA] Codex – seletores compactos no cabeçalho do tabuleiro
-    def draw_options(self, surf, ui, rect):
-        pygame.draw.rect(surf, T.PANEL, rect)
-        y = rect.y + px(4)
-        map_width = min(px(264), rect.w // 3)
-        for x, direction, icon in ((px(12), -1, "left"), (map_width-px(30), 1, "right")):
-            button = pygame.Rect(x, y, px(28), px(31))
-            if ui.button(surf, ("overview-map", direction), button, icon=icon,
-                         enabled=bool(self.entries), tooltip="Mapa anterior" if direction < 0 else "Próximo mapa"):
-                self.cycle_map(direction)
-        name = self.session.name if self.session else "Mapa"
-        font = Fonts.get(13)
-        text(surf, text_fit(name, font, map_width - px(82)), font, T.TEXT,
-             (map_width // 2, rect.centery), "center")
-        width = min(px(210), (rect.w - map_width - px(15)) // len(MODELS))
-        for index, (key, label) in enumerate(MODELS.items()):
-            button = pygame.Rect(map_width + px(8) + index * width, y, width - px(5), px(31))
-            if ui.button(surf, ("overview-model", key), button, text_fit(label, font, width - px(12)),
-                         active=self.model == key, tooltip=label, size=13):
-                self.set_model(key)
+    def open_help(self):
+        self.show_help = True
 
     def section(self, surf, x, y, title):
         text(surf, title.upper(), Fonts.get(11, bold=True), T.TEXT_FAINT, (x, y))
@@ -630,40 +622,33 @@ class Viewer:
         return clicked
 
     def draw_side(self, surf, ui, rect):
-        pygame.draw.rect(surf, T.PANEL, rect)
-        pygame.draw.line(surf, T.BORDER, rect.topright, rect.bottomright, 1)
         x, w = rect.x + px(14), rect.w - px(28)
-        y = rect.y + px(14)
+        y = self.section(surf, x, rect.y + px(14), "Mapa")
+        name = self.session.name if self.session is not None else "Selecionar mapa"
+        label = ("▾ " if self.maps_open else "▸ ") + name
+        if ui.button(surf, "map-list", pygame.Rect(x, y, w, px(32)), label, align="left",
+                     size=13, tooltip=name, enabled=bool(self.entries)):
+            self.maps_open = not self.maps_open
+        y += px(37)
+        if self.maps_open:
+            for index, (path, tag) in enumerate(self.entries):
+                row = pygame.Rect(x, y, w, px(27))
+                label = text_fit(path.stem, Fonts.get(13), w - px(22))
+                if ui.button(surf, ("map", index), row, label, active=index == self.index,
+                             style="ghost", align="left", size=13, tooltip=str(path)):
+                    if self.load_index(index):
+                        self.maps_open = False
+                y += px(29)
 
-        # ---- mapas
-        y = self.section(surf, x, y, f"Mapas ({len(self.entries)})")
-        item_h = px(30)
-        total = len(self.entries) * item_h
-        area_h = min(total, max(px(120), int(surf.get_height() * 0.30)))
-        area = pygame.Rect(x - px(4), y, w + px(8), area_h)
-        max_scroll = max(0, total - area_h)
-        if ui.hover(area) and ui.wheel:
-            self.list_scroll -= ui.wheel * item_h
-        self.list_scroll = max(0, min(max_scroll, self.list_scroll))
-        old_clip = surf.get_clip()
-        old_ui_clip = ui.clip
-        surf.set_clip(area.clip(old_clip))
-        ui.clip = area.clip(old_clip)
-        for i, (path, tag) in enumerate(self.entries):
-            r = pygame.Rect(area.x, area.y + i * item_h - self.list_scroll, area.w, item_h - px(3))
-            if r.bottom < area.y or r.y > area.bottom:
-                continue
-            hint = None if tag == "fornecido" else tag
-            if ui.button(surf, ("map", i), r, path.stem, active=i == self.index, style="ghost",
-                         align="left", hint=hint, size=13, tooltip=str(path)):
-                self.load_index(i)
-        surf.set_clip(old_clip)
-        ui.clip = old_ui_clip
-        if max_scroll:
-            bar_h = max(px(20), int(area_h * area_h / total))
-            bar_y = area.y + int((area_h - bar_h) * self.list_scroll / max_scroll)
-            rrect(surf, T.PANEL_3, pygame.Rect(area.right - px(3), bar_y, px(3), bar_h), 2)
-        y = area.bottom + px(16)
+        y = self.section(surf, x, y + px(8), "Modelo do grafo")
+        for key, label in MODELS.items():
+            row = pygame.Rect(x, y, w, px(30))
+            if ui.button(surf, ("graph-model", key), row, label, active=self.model == key,
+                         align="left", size=13, tooltip=label):
+                if key != self.model:
+                    self.set_model(key)
+            y += px(33)
+        y += px(10)
 
         bw, gap = (w - px(8)) // 2, px(8)
 
@@ -712,6 +697,8 @@ class Viewer:
                 pygame.draw.circle(surf, self.session.layer_color.get(self.layer, T.ACCENT),
                                    (mid.x + px(14), mid.centery), px(5))
             text(surf, label, Fonts.get(13, bold=True), T.TEXT, mid.center, "center")
+
+        return y + px(42)
 
     # ---------------------------------------------------------------- centro
     def draw_center(self, surf, ui, rect):
@@ -791,8 +778,6 @@ class Viewer:
 
         # cabeçalho
         r = text(surf, run.algorithm, Fonts.get(16, bold=True), T.TEXT, (header.x, header.centery), "midleft")
-        if not self.compare_all:
-            r = text(surf, MODELS[run.model], Fonts.get(13), T.TEXT_DIM, (r.right + px(10), header.centery), "midleft")
         chip = self.status_chip(surf, r.right + px(12), header.centery, run.status)
         parts = []
         if self.compare_all:

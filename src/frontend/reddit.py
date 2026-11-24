@@ -151,21 +151,21 @@ class RedditScreen:
     def draw(self, surf, ui):
         surf.fill(T.BG)
         width, height = surf.get_size()
-        pygame.draw.rect(surf, T.PANEL, (0, 0, width, px(138)))
+        pygame.draw.rect(surf, T.PANEL, (0, 0, width, px(54)))
         if ui.button(surf, "reddit-back", pygame.Rect(px(16), px(12), px(78), px(34)), "Menu"):
             self.app.open_menu()
         title = "Parte 2"
         text(surf, title, Fonts.get(21, bold=True), T.TEXT, (px(110), px(19)))
-        tab_w = min(px(145), (width - px(32)) // 4)
+        tab_w = min(px(145), max(1, (width - px(205)) // 4))
         for index, (key, label) in enumerate(ALGORITHMS.items()):
-            tab = pygame.Rect(px(16) + index * tab_w, px(55), tab_w - px(6), px(32))
+            tab = pygame.Rect(px(192) + index * tab_w, px(12), max(1, tab_w - px(6)), px(32))
             if ui.button(surf, ("reddit-tab", key), tab, label, active=self.algorithm == key):
                 self.choose(algorithm=key)
         for index, (key, label) in enumerate(self.modes()):
-            button = pygame.Rect(px(16) + index * px(150), px(96), px(142), px(32))
+            button = pygame.Rect(px(16) + index * px(150), px(66), px(142), px(32))
             if ui.button(surf, ("reddit-mode", key), button, label, active=self.mode == key):
                 self.choose(mode=key)
-        box = pygame.Rect(px(16), px(150), width - px(32), height - px(162))
+        box = pygame.Rect(px(16), px(110), width - px(32), height - px(122))
         if ui.hover(box) and ui.wheel:
             self.scroll = min(self.max_scroll, max(0, self.scroll - ui.wheel * px(45)))
         surf.set_clip(box)
