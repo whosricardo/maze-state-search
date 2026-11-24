@@ -159,11 +159,12 @@ python -m src.frontend --mapa data/mapas/m03_tres_chaves.txt
 python -m src.frontend --editor
 ```
 
-A capa abre o menu de Grafos e AVD. No labirinto, escolha o mapa, o modelo e a aba do
-algoritmo. Use **Comparar os quatro** para sincronizar os tabuleiros e clique em um
-deles para ampliá-lo. **Esc** fecha a ampliação ou retorna ao menu. Role a área abaixo
-da reprodução para consultar métricas, camadas e graus. Para a demonstração com mapa
-surpresa, arraste o arquivo `.txt` para a janela ou use `--mapa caminho/do/mapa.txt`.
+A capa abre o menu com **Parte 1**, **Parte 2** e **Voltar à capa**. No labirinto,
+abra **Controles** para escolher o mapa e o modelo do grafo. Use **Comparar os quatro**
+para sincronizar os tabuleiros e clique em um deles para ampliá-lo. **Esc** fecha a
+ampliação ou retorna ao menu. Abra **Expandir painel** para ajustar a velocidade
+e consultar métricas, camadas e graus. Para a demonstração com mapa surpresa,
+arraste o arquivo `.txt` para a janela ou use `--mapa caminho/do/mapa.txt`.
 
 A rubrica também exige `out/parte1/labirinto_interativo.html` como entrega da equipe.
 

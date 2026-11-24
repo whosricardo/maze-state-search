@@ -130,6 +130,7 @@ class Viewer:
         self.speeds = {"path": 5.0, "explore": 45.0}
         self.show_help = False
         self.sidebar_open = None
+        self.bottom_open = None
         self.maps_open = False
         self.more_open = False
         self.side_content_h = 0
@@ -498,10 +499,13 @@ class Viewer:
         width, height = surf.get_size()
         if self.sidebar_open is None:
             self.sidebar_open = width >= px(1024) and height >= px(700)
+        if self.bottom_open is None:
+            self.bottom_open = width >= px(1024) and height >= px(700)
         top = pygame.Rect(0, 0, width, px(54))
-        metrics_height = min(px(155), max(px(98), height // 5))
+        metrics_height = min(px(155), max(px(98), height // 5)) if self.bottom_open else 0
         metrics = pygame.Rect(0, height - metrics_height, width, metrics_height)
-        playback = pygame.Rect(0, metrics.y - px(96), width, px(96))
+        playback_height = px(96 if self.bottom_open else 44)
+        playback = pygame.Rect(0, metrics.y - playback_height, width, playback_height)
 
         surf.fill(T.BG)
         ui.blocked = self.show_help
@@ -533,8 +537,9 @@ class Viewer:
             text(surf, "Nenhum mapa válido encontrado", Fonts.get(16), T.TEXT_DIM, center.center, "center")
         surf.set_clip(None)
         ui.clip = None
-        self.draw_bottom(surf, ui, playback)
-        self.draw_right(surf, ui, metrics)
+        self.draw_bottom_dock(surf, ui, playback)
+        if self.bottom_open:
+            self.draw_right(surf, ui, metrics)
         ui.blocked = False
         if self.more_open and not self.show_help:
             self.draw_more(surf, ui, more_button)
@@ -626,6 +631,7 @@ class Viewer:
         y = self.section(surf, x, rect.y + px(14), "Mapa")
         name = self.session.name if self.session is not None else "Selecionar mapa"
         label = ("▾ " if self.maps_open else "▸ ") + name
+        label = text_fit(label, Fonts.get(13), max(1, w - px(22)))
         if ui.button(surf, "map-list", pygame.Rect(x, y, w, px(32)), label, align="left",
                      size=13, tooltip=name, enabled=bool(self.entries)):
             self.maps_open = not self.maps_open
@@ -643,7 +649,8 @@ class Viewer:
         y = self.section(surf, x, y + px(8), "Modelo do grafo")
         for key, label in MODELS.items():
             row = pygame.Rect(x, y, w, px(30))
-            if ui.button(surf, ("graph-model", key), row, label, active=self.model == key,
+            shown = text_fit(label, Fonts.get(13), max(1, w - px(22)))
+            if ui.button(surf, ("graph-model", key), row, shown, active=self.model == key,
                          align="left", size=13, tooltip=label):
                 if key != self.model:
                     self.set_model(key)
@@ -1077,6 +1084,43 @@ class Viewer:
             rrect(surf, T.PANEL_3, pygame.Rect(rect.right - px(5), bar_y, px(3), bar_h), 2)
 
     # ---------------------------------------------------------------- barra inferior
+    # [IA] Codex – sintaxe Pygame para recolher a reprodução e as métricas
+    def draw_bottom_dock(self, surf, ui, rect):
+        pygame.draw.rect(surf, T.PANEL, rect)
+        pygame.draw.line(surf, T.BORDER, rect.topleft, rect.topright)
+        button = pygame.Rect(rect.right - px(122), rect.y + px(6), px(112), px(32))
+        label = "Recolher painel" if self.bottom_open else "Expandir painel"
+        if self.bottom_open:
+            controls = pygame.Rect(rect.x, rect.y, button.x - rect.x - px(6), rect.h)
+            self.draw_bottom(surf, ui, controls)
+        else:
+            self.draw_compact_playback(surf, ui, rect, button.x)
+        if ui.button(surf, "bottom-dock", button, label, size=13):
+            self.bottom_open = not self.bottom_open
+
+    def draw_compact_playback(self, surf, ui, rect, right):
+        p = self.player
+        items = (
+            ("prev", "prev", "Passo anterior (←)"),
+            ("pause" if p.playing else "play", "play", "Reproduzir / pausar (Espaço)"),
+            ("next", "next", "Próximo passo (→)"),
+        )
+        x = rect.x + px(10)
+        for icon, action, tooltip in items:
+            button = pygame.Rect(x, rect.y + px(6), px(36), px(32))
+            style = "accent" if action == "play" else "default"
+            if ui.button(surf, ("compact", action), button, icon=icon, style=style,
+                         tooltip=tooltip, enabled=p.length > 1):
+                if action == "play":
+                    p.toggle()
+                else:
+                    p.step(-1 if action == "prev" else 1)
+            x = button.right + px(6)
+        message = f"Passo {int(round(p.pos))} de {p.last}"
+        font = Fonts.get(13, bold=True)
+        text(surf, text_fit(message, font, max(0, right - x - px(8))),
+             font, T.TEXT, (x, rect.centery), "midleft")
+
     def draw_bottom(self, surf, ui, rect):
         pygame.draw.rect(surf, T.PANEL, rect)
         pygame.draw.line(surf, T.BORDER, rect.topleft, rect.topright, 1)
