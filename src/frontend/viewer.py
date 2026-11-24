@@ -493,11 +493,12 @@ class Viewer:
         width, height = surf.get_size()
         top = pygame.Rect(0, 0, width, px(58))
         tabs = pygame.Rect(0, top.bottom, width, px(46))
+        options = pygame.Rect(0, tabs.bottom, width, px(40))
         metrics_height = min(px(155), max(px(98), height // 5))
         metrics = pygame.Rect(0, height - metrics_height, width, metrics_height)
         playback = pygame.Rect(0, metrics.y - px(96), width, px(96))
-        side = pygame.Rect(0, tabs.bottom, px(256), playback.y - tabs.bottom)
-        center = pygame.Rect(side.right, tabs.bottom, width - side.right, side.h)
+        side = pygame.Rect(0, options.bottom, px(256), playback.y - options.bottom)
+        center = pygame.Rect(side.right, options.bottom, width - side.right, side.h)
 
         surf.fill(T.BG)
         ui.blocked = self.show_help
@@ -511,6 +512,7 @@ class Viewer:
         if ui.button(surf, "all-runs", pygame.Rect(width-px(168), tabs.y+px(5), px(156), px(34)),
                      "Comparar os quatro", active=self.compare_all, size=13):
             self.toggle("compare_all")
+        self.draw_options(surf, ui, options)
         surf.set_clip(side)
         ui.clip = side
         if ui.hover(side) and ui.wheel:
@@ -580,6 +582,27 @@ class Viewer:
                     self.export_png()
 
     # ---------------------------------------------------------------- lateral
+    # [IA] Codex – seletores compactos no cabeçalho do tabuleiro
+    def draw_options(self, surf, ui, rect):
+        pygame.draw.rect(surf, T.PANEL, rect)
+        y = rect.y + px(4)
+        map_width = min(px(264), rect.w // 3)
+        for x, direction, icon in ((px(12), -1, "left"), (map_width-px(30), 1, "right")):
+            button = pygame.Rect(x, y, px(28), px(31))
+            if ui.button(surf, ("overview-map", direction), button, icon=icon,
+                         enabled=bool(self.entries), tooltip="Mapa anterior" if direction < 0 else "Próximo mapa"):
+                self.cycle_map(direction)
+        name = self.session.name if self.session else "Mapa"
+        font = Fonts.get(13)
+        text(surf, text_fit(name, font, map_width - px(82)), font, T.TEXT,
+             (map_width // 2, rect.centery), "center")
+        width = min(px(210), (rect.w - map_width - px(15)) // len(MODELS))
+        for index, (key, label) in enumerate(MODELS.items()):
+            button = pygame.Rect(map_width + px(8) + index * width, y, width - px(5), px(31))
+            if ui.button(surf, ("overview-model", key), button, text_fit(label, font, width - px(12)),
+                         active=self.model == key, tooltip=label, size=13):
+                self.set_model(key)
+
     def section(self, surf, x, y, title):
         text(surf, title.upper(), Fonts.get(11, bold=True), T.TEXT_FAINT, (x, y))
         return y + px(20)
@@ -653,22 +676,6 @@ class Viewer:
                              tooltip=f"Shift+{k + 1}", size=12):
                     self.set_algo(name, secondary=True)
             y += 2 * (bh2 + px(6)) + px(8)
-
-        # ---- modelo
-        y = self.section(surf, x, y, "Modelo do grafo")
-        tips = {
-            "estados": "Nó = (posição, chaves, bônus). É onde os algoritmos devem rodar.",
-            "chao": "Modelo ingênuo: porta tratada como chão. Pode atravessar porta trancada (INVÁLIDO).",
-            "parede": "Modelo ingênuo: porta tratada como parede. Pode não chegar à saída (FALHA).",
-        }
-        for key, label in MODELS.items():
-            r = pygame.Rect(x, y, w, px(30))
-            if ui.button(surf, ("model", key), r, label, active=self.model == key, style="ghost",
-                         align="left", size=13, tooltip=tips[key],
-                         hint="M" if key == self.model else None):
-                self.set_model(key)
-            y += px(33)
-        y += px(10)
 
         # ---- visualização
         y = self.section(surf, x, y, "Visualização")
@@ -940,12 +947,13 @@ class Viewer:
     def panel_result(self, surf, x, y, w, runs):
         s = self.session
         y = self.section(surf, x, y, "Resultados · " + MODELS[self.model])
-        cols = [x, x + int(w * 0.36), x + int(w * 0.70), x + w]
+        cols = [x, x + int(w * 0.29), x + int(w * 0.54), x + int(w * 0.76), x + w]
         font = Fonts.get(12)
         text(surf, "algoritmo", font, T.TEXT_FAINT, (cols[0], y))
         text(surf, "status", font, T.TEXT_FAINT, (cols[1], y))
         text(surf, "mov.", font, T.TEXT_FAINT, (cols[2], y))
-        text(surf, "custo · tempo", font, T.TEXT_FAINT, (cols[3], y), "topright")
+        text(surf, "custo", font, T.TEXT_FAINT, (cols[3], y), "topright")
+        text(surf, "tempo", font, T.TEXT_FAINT, (cols[4], y), "topright")
         y += px(20)
         for run in runs:
             name = run.algorithm
@@ -953,14 +961,16 @@ class Viewer:
             if sel:
                 rrect(surf, T.PANEL_2, pygame.Rect(x - px(6), y - px(3), w + px(12), px(24)), 5)
             color = STATUS_RGB.get(STATUS_COLORS.get(run.status, "info"), T.INFO)
-            text(surf, name, Fonts.get(13, bold=sel), T.TEXT, (cols[0], y))
+            title_font = Fonts.get(13, bold=sel)
+            text(surf, text_fit(name, title_font, cols[1] - cols[0] - px(4)), title_font, T.TEXT, (cols[0], y))
             text(surf, text_fit(run.status, Fonts.get(12, bold=True), cols[2] - cols[1] - px(4)),
                  Fonts.get(12, bold=True), color, (cols[1], y + px(1)))
             moves = run.moves if (run.frames and not run.loop) else "—"
             cost = f"{fmt_num(run.path_cost)}/volta" if run.loop else fmt_num(run.path_cost)
             text(surf, str(moves), Fonts.get(13), T.TEXT, (cols[2], y))
-            text(surf, f"{cost} · {run.elapsed_ms:.2f} ms", Fonts.get(12), T.TEXT,
-                 (cols[3], y), "topright")
+            text(surf, cost, font, T.TEXT, (cols[3], y), "topright")
+            timing = text_fit(f"{run.elapsed_ms:.2f} ms", font, cols[4] - cols[3] - px(4))
+            text(surf, timing, font, T.TEXT, (cols[4], y), "topright")
             y += px(26)
         y += px(6)
 
