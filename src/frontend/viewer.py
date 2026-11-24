@@ -123,6 +123,7 @@ class Viewer:
         self.speeds = {"path": 5.0, "explore": 45.0}
         self.show_help = False
         self.list_scroll = 0
+        self.side_scroll = 0
         self.panel_scroll = 0
         self.panel_content_h = 0
 
@@ -440,24 +441,40 @@ class Viewer:
         return d
 
     # -------------------------------------------------------------- desenho
+    # [IA] Codex – sintaxe Pygame para abas e métricas abaixo do tabuleiro
     def draw(self, surf, ui):
-        W, H = surf.get_size()
-        top = pygame.Rect(0, 0, W, px(58))
-        side = pygame.Rect(0, top.bottom, px(256), H - top.bottom)
-        right = pygame.Rect(W - px(344), top.bottom, px(344), H - top.bottom)
-        bottom = pygame.Rect(side.right, H - px(96), right.x - side.right, px(96))
-        center = pygame.Rect(side.right, top.bottom, right.x - side.right, bottom.y - top.bottom)
+        width, height = surf.get_size()
+        top = pygame.Rect(0, 0, width, px(58))
+        tabs = pygame.Rect(0, top.bottom, width, px(46))
+        metrics = pygame.Rect(0, height - px(155), width, px(155))
+        playback = pygame.Rect(0, metrics.y - px(96), width, px(96))
+        side = pygame.Rect(0, tabs.bottom, px(256), playback.y - tabs.bottom)
+        center = pygame.Rect(side.right, tabs.bottom, width - side.right, side.h)
 
         surf.fill(T.BG)
         ui.blocked = self.show_help
+        self.draw_top(surf, ui, top)
+        names = ALGORITHMS
+        for index, name in enumerate(names):
+            bw = min(px(145), (width - px(40)) // len(names))
+            tab = pygame.Rect(px(12) + index * bw, tabs.y + px(5), bw - px(5), px(34))
+            if ui.button(surf, ("tab", name), tab, name, active=self.algo == name, size=13):
+                self.set_algo(name)
+        surf.set_clip(side)
+        ui.clip = side
+        if ui.hover(side) and ui.wheel:
+            self.side_scroll = max(0, min(px(750) - side.h, self.side_scroll - ui.wheel * px(48)))
+        self.draw_side(surf, ui, pygame.Rect(side.x, side.y - self.side_scroll, side.w, side.h + self.side_scroll))
+        surf.set_clip(center)
+        ui.clip = center
         if self.session is not None:
             self.draw_center(surf, ui, center)
         else:
-            text(surf, "Nenhum mapa válido encontrado em data/mapas/", Fonts.get(16), T.TEXT_DIM, center.center, "center")
-        self.draw_top(surf, ui, top)
-        self.draw_side(surf, ui, side)
-        self.draw_right(surf, ui, right)
-        self.draw_bottom(surf, ui, bottom)
+            text(surf, "Nenhum mapa válido encontrado", Fonts.get(16), T.TEXT_DIM, center.center, "center")
+        surf.set_clip(None)
+        ui.clip = None
+        self.draw_bottom(surf, ui, playback)
+        self.draw_right(surf, ui, metrics)
         ui.blocked = False
         if self.show_help:
             self.draw_help(surf, ui)
@@ -483,12 +500,16 @@ class Viewer:
             cw = font.size(chip_text)[0] + px(28)
             chip = pygame.Rect(0, 0, cw, px(30))
             chip.midleft = (r.right + px(28), ly)
-            rrect(surf, T.PANEL_2, chip, 15)
+            if chip.right > rect.right - px(440):
+                chip.x = rect.right
+            if chip.x < rect.right:
+                rrect(surf, T.PANEL_2, chip, 15)
             pygame.draw.circle(surf, T.ACCENT if tag == "fornecido" else T.OK, (chip.x + px(14), chip.centery), px(4))
             text(surf, chip_text, font, T.TEXT, (chip.x + px(24), chip.centery), "midleft")
 
         bx = rect.right - px(16)
         for label, action, style, tip in (
+            ("Menu", "menu", "default", "Voltar ao menu (Esc)"),
             ("?", "help", "default", "Atalhos de teclado (F1)"),
             ("Editor de mapas", "editor", "default", "Criar e testar mapas do grupo (E)"),
             ("Exportar PNG", "png", "accent", "Salva o percurso atual em out/parte1/ com cor por camada (P)"),
@@ -498,7 +519,9 @@ class Viewer:
             b.midright = (bx, rect.centery)
             bx = b.x - px(8)
             if ui.button(surf, ("top", action), b, label, style=style, tooltip=tip, size=13, bold=True):
-                if action == "help":
+                if action == "menu":
+                    self.app.open_menu()
+                elif action == "help":
                     self.show_help = True
                 elif action == "editor":
                     self.app.open_editor()
@@ -548,8 +571,10 @@ class Viewer:
         if ui.hover(area) and ui.wheel:
             self.list_scroll -= ui.wheel * item_h
         self.list_scroll = max(0, min(max_scroll, self.list_scroll))
-        surf.set_clip(area)
-        ui.clip = area
+        old_clip = surf.get_clip()
+        old_ui_clip = ui.clip
+        surf.set_clip(area.clip(old_clip))
+        ui.clip = area.clip(old_clip)
         for i, (path, tag) in enumerate(self.entries):
             r = pygame.Rect(area.x, area.y + i * item_h - self.list_scroll, area.w, item_h - px(3))
             if r.bottom < area.y or r.y > area.bottom:
@@ -558,22 +583,15 @@ class Viewer:
             if ui.button(surf, ("map", i), r, path.stem, active=i == self.index, style="ghost",
                          align="left", hint=hint, size=13, tooltip=str(path)):
                 self.load_index(i)
-        surf.set_clip(None)
-        ui.clip = None
+        surf.set_clip(old_clip)
+        ui.clip = old_ui_clip
         if max_scroll:
             bar_h = max(px(20), int(area_h * area_h / total))
             bar_y = area.y + int((area_h - bar_h) * self.list_scroll / max_scroll)
             rrect(surf, T.PANEL_3, pygame.Rect(area.right - px(3), bar_y, px(3), bar_h), 2)
         y = area.bottom + px(16)
 
-        # ---- algoritmo
-        y = self.section(surf, x, y, "Algoritmo")
-        bw, bh, gap = (w - px(8)) // 2, px(34), px(8)
-        for k, name in enumerate(ALGORITHMS):
-            r = pygame.Rect(x + (k % 2) * (bw + gap), y + (k // 2) * (bh + gap), bw, bh)
-            if ui.button(surf, ("algo", k), r, name, active=self.algo == name, align="left", hint=str(k + 1), size=13):
-                self.set_algo(name)
-        y += 2 * (bh + gap) + px(8)
+        bw, gap = (w - px(8)) // 2, px(8)
 
         if self.compare:
             y = self.section(surf, x, y, "Comparar com")
@@ -831,7 +849,7 @@ class Viewer:
 
     def panel_result(self, surf, x, y, w, runs):
         s = self.session
-        y = self.section(surf, x, y, "Todos os algoritmos · " + MODELS[self.model])
+        y = self.section(surf, x, y, "Resultados · " + MODELS[self.model])
         cols = [x, x + int(w * 0.36), x + int(w * 0.70), x + w]
         font = Fonts.get(12)
         text(surf, "algoritmo", font, T.TEXT_FAINT, (cols[0], y))
@@ -839,8 +857,8 @@ class Viewer:
         text(surf, "mov.", font, T.TEXT_FAINT, (cols[2], y))
         text(surf, "custo", font, T.TEXT_FAINT, (cols[3], y), "topright")
         y += px(20)
-        for name in ALGORITHMS[:3]:
-            run = s.run(name, self.model)
+        for run in runs:
+            name = run.algorithm
             sel = name in [r.algorithm for r in runs]
             if sel:
                 rrect(surf, T.PANEL_2, pygame.Rect(x - px(6), y - px(3), w + px(12), px(24)), 5)
@@ -939,20 +957,20 @@ class Viewer:
 
         surf.set_clip(rect)
         ui.clip = rect
-        x, w = rect.x + px(20), rect.w - px(40)
-        y0 = rect.y + px(18) - self.panel_scroll
-        y = y0
+        x = rect.x + px(20)
+        w = (rect.w - px(60)) // 3
+        y = rect.y + px(12) - self.panel_scroll
         runs = self.runs()
         if self.explore_mode:
-            y = self.panel_explore(surf, x, y, w, runs)
+            first = self.panel_explore(surf, x, y, w, runs)
         else:
-            y = self.panel_state(surf, x, y, w, runs[0])
-            if len(runs) > 1:
-                y = self.panel_state(surf, x, y, w, runs[1], compact=True)
-        y = self.panel_result(surf, x, y, w, runs)
-        y = self.panel_metrics(surf, x, y, w)
-        y = self.panel_layers(surf, ui, x, y, w)
-        self.panel_content_h = y - y0
+            first = self.panel_state(surf, x, y, w, runs[0])
+            for run in runs[1:]:
+                first = self.panel_state(surf, x, first, w, run, compact=True)
+        second = self.panel_result(surf, x + w + px(10), y, w, runs)
+        third = self.panel_metrics(surf, x + 2 * (w + px(10)), y, w)
+        third = self.panel_layers(surf, ui, x + 2 * (w + px(10)), third, w)
+        self.panel_content_h = max(first, second, third) - y
         surf.set_clip(None)
         ui.clip = None
         if max_scroll:
