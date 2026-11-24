@@ -1,6 +1,7 @@
 # [IA] Claude Code (Opus 5.5) – interface pygame: tela principal (labirinto interativo)
 import math
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 
 import pygame
 
@@ -115,6 +116,12 @@ class Viewer:
         self.algo_b = "BFS"
         self.model = "estados"
         self.compare = False
+        self.compare_all = False
+        self.focus_board = None
+        self.compare_executor = ThreadPoolExecutor(max_workers=1)
+        self.compare_job = None
+        self.compare_results = []
+        self.compare_error = None
         self.explore_mode = False
         self.show_heat = False
         self.show_traps = False
@@ -173,7 +180,7 @@ class Viewer:
             return False
         self.session = session
         self.index = index
-        self.boards = [Board(session.grid), Board(session.grid)]
+        self.boards = [Board(session.grid) for _ in ALGORITHMS]
         self.layer = None
         self.panel_scroll = 0
         self.restart()
@@ -186,12 +193,29 @@ class Viewer:
     def runs(self):
         if self.session is None:
             return []
+        if self.compare_all:
+            return self.compare_results
         runs = [self.session.run(self.algo, self.model)]
         if self.compare:
             runs.append(self.session.run(self.algo_b, self.model))
         return runs
 
     def restart(self, autoplay=True):
+        if self.compare_job is not None:
+            self.compare_job.cancel()
+            self.compare_job = None
+        if self.compare_all and self.session is not None:
+            session, model = self.session, self.model
+            self.compare_results = []
+            self.compare_error = None
+            self.player.reset(0)
+            self.compare_job = self.compare_executor.submit(
+                lambda: [session.run(name, model) for name in ALGORITHMS]
+            )
+            return
+        self.reset_player(autoplay)
+
+    def reset_player(self, autoplay):
         runs = self.runs()
         if not runs:
             self.player.reset(0)
@@ -201,8 +225,8 @@ class Viewer:
             loop = False
         else:
             length = max(len(r.frames) for r in runs)
-            loop = runs[0].loop and not self.compare
-        self.player.reset(length, loop, autoplay)
+            loop = runs[0].loop and not (self.compare or self.compare_all)
+        self.player.reset(length, loop, autoplay and not self.compare_all)
 
     @property
     def speed(self):
@@ -214,6 +238,8 @@ class Viewer:
 
     # -------------------------------------------------------------- ações
     def set_algo(self, name, secondary=False):
+        self.compare_all = False
+        self.focus_board = None
         if secondary:
             self.algo_b = name
         else:
@@ -234,6 +260,13 @@ class Viewer:
             self.show_traps = not self.show_traps
         elif what == "compare":
             self.compare = not self.compare
+            self.compare_all = False
+            self.focus_board = None
+            self.restart()
+        elif what == "compare_all":
+            self.compare_all = not self.compare_all
+            self.compare = False
+            self.focus_board = None
             self.restart()
 
     def cycle_layer(self, delta):
@@ -258,7 +291,10 @@ class Viewer:
         if self.session is None:
             return
         s = self.session
-        run = self.runs()[0]
+        runs = self.runs()
+        if not runs:
+            return
+        run = runs[self.focus_board or 0]
         if not run.frames:
             self.app.toast("Nada para exportar: este algoritmo não produziu caminho neste mapa.", "warn")
             return
@@ -315,7 +351,10 @@ class Viewer:
                 self.show_help = False
             return
         if key == pygame.K_ESCAPE:
-            self.app.open_menu()
+            if self.focus_board is not None:
+                self.focus_board = None
+            else:
+                self.app.open_menu()
         elif key == pygame.K_SPACE:
             self.player.toggle()
         elif key == pygame.K_RIGHT:
@@ -365,6 +404,13 @@ class Viewer:
             self.show_help = True
 
     def update(self, dt):
+        if self.compare_job is not None and self.compare_job.done():
+            try:
+                self.compare_results = self.compare_job.result()
+            except Exception as error:
+                self.compare_error = str(error)
+            self.compare_job = None
+            self.reset_player(False)
         self.player.update(dt, self.speed)
 
     # -------------------------------------------------------------- estado visual
@@ -456,10 +502,13 @@ class Viewer:
         self.draw_top(surf, ui, top)
         names = ALGORITHMS
         for index, name in enumerate(names):
-            bw = min(px(145), (width - px(40)) // len(names))
+            bw = min(px(145), (width - px(182)) // len(names))
             tab = pygame.Rect(px(12) + index * bw, tabs.y + px(5), bw - px(5), px(34))
-            if ui.button(surf, ("tab", name), tab, name, active=self.algo == name, size=13):
+            if ui.button(surf, ("tab", name), tab, name, active=self.algo == name and not self.compare_all, size=13):
                 self.set_algo(name)
+        if ui.button(surf, "all-runs", pygame.Rect(width-px(168), tabs.y+px(5), px(156), px(34)),
+                     "Comparar os quatro", active=self.compare_all, size=13):
+            self.toggle("compare_all")
         surf.set_clip(side)
         ui.clip = side
         if ui.hover(side) and ui.wheel:
@@ -659,6 +708,32 @@ class Viewer:
     def draw_center(self, surf, ui, rect):
         runs = self.runs()
         s = self.session
+        if not runs:
+            message = self.compare_error or "Preparando os quatro resultados…"
+            text(surf, text_fit(message, Fonts.get(15), rect.w), Fonts.get(15),
+                 T.TEXT_DIM, rect.center, "center")
+            return
+        # [IA] Codex – grade e ampliação dos tabuleiros existentes
+        if len(runs) == 4:
+            if self.focus_board is not None:
+                index = self.focus_board
+                self.draw_board(surf, ui, self.boards[index], runs[index], rect)
+                back = pygame.Rect(rect.right-px(123), rect.y+px(8), px(115), px(30))
+                if ui.button(surf, "close-board", back, "Voltar à grade", size=12):
+                    self.focus_board = None
+                return
+            for index, (board, run) in enumerate(zip(self.boards, runs)):
+                left = rect.x + (index % 2) * (rect.w // 2)
+                top = rect.y + (index // 2) * (rect.h // 2)
+                area = pygame.Rect(left, top, rect.w // 2, rect.h // 2)
+                self.draw_board(surf, ui, board, run, area)
+                hit = board.rect.clip(area)
+                if ui.hover(hit) and ui.pressed:
+                    ui.active = ("focus-board", index)
+                if ui.hover(hit) and ui.released and ui.active == ("focus-board", index):
+                    self.player.playing = False
+                    self.focus_board = index
+            return
         if len(runs) == 2:
             half_w, half_h = rect.w // 2, rect.h // 2
             horiz = [pygame.Rect(rect.x, rect.y, half_w, rect.h),
@@ -690,6 +765,8 @@ class Viewer:
         header = pygame.Rect(area.x + px(18), area.y + px(12), area.w - px(36), px(28))
         inner = pygame.Rect(area.x + px(18), header.bottom + px(10), area.w - px(36),
                             area.bottom - header.bottom - px(22))
+        if inner.w < px(12) or inner.h < px(12):
+            return
         board.fit(inner)
         frame_rect = board.rect.inflate(px(10), px(10))
         rrect(surf, (8, 8, 10), frame_rect.move(0, px(4)), 8)
@@ -699,7 +776,8 @@ class Viewer:
 
         # cabeçalho
         r = text(surf, run.algorithm, Fonts.get(16, bold=True), T.TEXT, (header.x, header.centery), "midleft")
-        r = text(surf, MODELS[run.model], Fonts.get(13), T.TEXT_DIM, (r.right + px(10), header.centery), "midleft")
+        if not self.compare_all:
+            r = text(surf, MODELS[run.model], Fonts.get(13), T.TEXT_DIM, (r.right + px(10), header.centery), "midleft")
         chip = self.status_chip(surf, r.right + px(12), header.centery, run.status)
         parts = []
         if run.loop:
@@ -867,7 +945,7 @@ class Viewer:
             text(surf, text_fit(run.status, Fonts.get(12, bold=True), cols[2] - cols[1] - px(4)),
                  Fonts.get(12, bold=True), color, (cols[1], y + px(1)))
             moves = run.moves if (run.frames and not run.loop) else "—"
-            cost = "−∞" if run.loop else fmt_num(run.path_cost if run.frames else None)
+            cost = f"{fmt_num(run.path_cost)}/volta" if run.loop else fmt_num(run.path_cost)
             text(surf, str(moves), Fonts.get(13), T.TEXT, (cols[2], y))
             text(surf, cost, Fonts.get(13, bold=True), T.TEXT, (cols[3], y), "topright")
             y += px(26)
@@ -963,10 +1041,12 @@ class Viewer:
         runs = self.runs()
         if self.explore_mode:
             first = self.panel_explore(surf, x, y, w, runs)
-        else:
+        elif runs:
             first = self.panel_state(surf, x, y, w, runs[0])
             for run in runs[1:]:
                 first = self.panel_state(surf, x, first, w, run, compact=True)
+        else:
+            first = y
         second = self.panel_result(surf, x + w + px(10), y, w, runs)
         third = self.panel_metrics(surf, x + 2 * (w + px(10)), y, w)
         third = self.panel_layers(surf, ui, x + 2 * (w + px(10)), third, w)
@@ -1015,7 +1095,7 @@ class Viewer:
         mode = "Exploração" if self.explore_mode else ("Ciclo negativo" if p.loop else "Percurso")
         idx = int(round(p.pos)) if has else 0
         text(surf, f"{mode}  ·  passo {idx} de {p.last}", Fonts.get(13, bold=True), T.TEXT, (tx, rect.y + px(12)))
-        if self.session and not self.explore_mode:
+        if self.runs() and not self.explore_mode:
             run = self.runs()[0]
             frame, *_ = self.frame_at(run)
             if frame is not None:

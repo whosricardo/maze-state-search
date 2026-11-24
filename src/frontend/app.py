@@ -148,6 +148,7 @@ class App:
             if self.pending is not None:
                 self.current = self.pending
                 self.pending = None
+        self.viewer.compare_executor.shutdown(wait=False, cancel_futures=True)
         pygame.quit()
 
     def draw_toasts(self, surf):
