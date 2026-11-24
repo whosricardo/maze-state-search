@@ -111,7 +111,11 @@ class App:
         self.pending = self.menu
 
     def open_reddit(self):
-        self.toast("A Parte 2 está sendo integrada.", "info")
+        from src.frontend.reddit import RedditScreen
+
+        if self.reddit is None:
+            self.reddit = RedditScreen(self)
+        self.pending = self.reddit
 
     def open_editor(self):
         self.pending = self.editor
