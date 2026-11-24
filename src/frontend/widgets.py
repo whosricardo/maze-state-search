@@ -83,6 +83,14 @@ def draw_icon(surf, name, center, size, color):
         d = 1 if name == "right" else -1
         pts = [(cx - d * s * 0.35, cy - s * 0.6), (cx + d * s * 0.45, cy), (cx - d * s * 0.35, cy + s * 0.6)]
         pygame.draw.lines(surf, color, False, pts, max(2, int(s * 0.28)))
+    elif name == "sidebar":
+        frame = pygame.Rect(0, 0, size, size)
+        frame.center = center
+        stroke = max(1, int(size * 0.10))
+        pygame.draw.rect(surf, color, frame, stroke, border_radius=max(2, size // 5))
+        x = frame.x + size // 3
+        pygame.draw.line(surf, color, (x, frame.y + 2 * stroke),
+                         (x, frame.bottom - 2 * stroke - 1), stroke)
     elif name == "dot":
         pygame.draw.circle(surf, color, (cx, cy), max(2, int(s * 0.5)))
 

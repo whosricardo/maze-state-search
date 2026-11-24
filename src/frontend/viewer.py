@@ -24,6 +24,7 @@ STATUS_RGB = {"ok": T.OK, "err": T.ERR, "warn": T.WARN, "info": T.INFO}
 EDGE_NAMES = [("TREE", "árvore"), ("BACK", "retorno"), ("FORWARD", "avanço"), ("CROSS", "cruzamento")]
 
 SPEED_MIN, SPEED_MAX = 0.5, 240.0
+MAP_LIST_ROWS = 4
 
 
 def speed_to_t(speed):
@@ -131,7 +132,9 @@ class Viewer:
         self.show_help = False
         self.sidebar_open = None
         self.bottom_open = None
-        self.maps_open = False
+        self.maps_open = True
+        self.map_scroll = 0
+        self.algorithm_select = None
         self.more_open = False
         self.side_content_h = 0
         self.side_scroll = 0
@@ -185,6 +188,10 @@ class Viewer:
             return False
         self.session = session
         self.index = index
+        if index < self.map_scroll:
+            self.map_scroll = index
+        elif index >= self.map_scroll + MAP_LIST_ROWS:
+            self.map_scroll = index - MAP_LIST_ROWS + 1
         self.boards = [Board(session.grid) for _ in ALGORITHMS]
         self.layer = None
         self.panel_scroll = 0
@@ -520,18 +527,28 @@ class Viewer:
             pygame.draw.line(surf, T.BORDER, side.topright, side.bottomright)
             surf.set_clip(side)
             ui.clip = side
-            if ui.hover(side) and ui.wheel:
+            maps = self.map_list_rect(side.x, side.y - self.side_scroll, side.w)
+            if ui.hover(side) and ui.wheel and not (self.maps_open and ui.hover(maps)):
                 self.side_scroll -= ui.wheel * px(48)
             self.side_scroll = max(0, min(self.side_scroll, self.side_content_h - side.h))
             content = pygame.Rect(side.x, side.y - self.side_scroll, side.w, side.h)
             self.side_content_h = self.draw_side(surf, ui, content) - content.y
+        surf.set_clip(None)
+        ui.clip = None
+        toggle_x = side.right - px(40) if side_width else px(8)
+        toggle = pygame.Rect(toggle_x, top.bottom + px(4), px(32), px(28))
+        if ui.button(surf, "sidebar", toggle, icon="sidebar", style="ghost",
+                     tooltip="Recolher lateral" if side_width else "Abrir lateral"):
+            self.sidebar_open = not self.sidebar_open
+            self.algorithm_select = None
         surf.set_clip(center)
         ui.clip = center
         if self.session is not None:
             model_font = Fonts.get(12)
-            text(surf, text_fit(MODELS[self.model], model_font, center.w - px(24)),
-                 model_font, T.TEXT_DIM, (center.x + px(12), center.y + px(8)))
-            body = pygame.Rect(center.x, center.y + px(24), center.w, max(0, center.h - px(24)))
+            label_x = center.x + px(12 if side_width else 49)
+            text(surf, text_fit(MODELS[self.model], model_font, center.right - label_x - px(12)),
+                 model_font, T.TEXT_DIM, (label_x, center.y + px(12)))
+            body = pygame.Rect(center.x, center.y + px(34), center.w, max(0, center.h - px(34)))
             self.draw_center(surf, ui, body)
         else:
             text(surf, "Nenhum mapa válido encontrado", Fonts.get(16), T.TEXT_DIM, center.center, "center")
@@ -555,29 +572,12 @@ class Viewer:
         if ui.button(surf, ("top", "menu"), menu, "Menu", tooltip="Voltar ao menu (Esc)"):
             self.more_open = False
             self.app.open_menu()
-        title = text(surf, "Parte 1", Fonts.get(15, bold=True), T.TEXT,
-                     (menu.right + px(10), rect.centery), "midleft")
         more = pygame.Rect(rect.right - px(59), y, px(49), px(34))
-        controls = pygame.Rect(more.x - px(89), y, px(83), px(34))
-        short = rect.w < px(1000)
-        compare_width = px(99 if short else 150)
-        compare = pygame.Rect(controls.x - compare_width - px(6), y, compare_width, px(34))
-        bw = min(px(145), max(1, (compare.x - title.right - px(18)) // len(ALGORITHMS)))
-        for index, name in enumerate(ALGORITHMS):
-            tab = pygame.Rect(title.right + px(9) + index * bw, y, max(1, bw - px(4)), px(34))
-            label = text_fit(name, Fonts.get(13), max(1, tab.w - px(8)))
-            if ui.button(surf, ("tab", name), tab, label, tooltip=name, size=13,
-                         active=self.algo == name and not self.compare_all):
-                self.more_open = False
-                self.set_algo(name)
-        if ui.button(surf, "all-runs", compare, "Comparar 4" if short else "Comparar os quatro",
+        compare = pygame.Rect(more.x - px(156), y, px(150), px(34))
+        if ui.button(surf, "all-runs", compare, "Comparar os quatro",
                      tooltip="Comparar os quatro", active=self.compare_all, size=13):
             self.more_open = False
             self.toggle("compare_all")
-        if ui.button(surf, "sidebar", controls, "Controles", active=self.sidebar_open, size=13,
-                     tooltip="Recolher lateral" if self.sidebar_open else "Abrir lateral"):
-            self.more_open = False
-            self.sidebar_open = not self.sidebar_open
         if ui.button(surf, "more", more, "Mais", active=self.more_open, size=13):
             self.more_open = not self.more_open
         return more
@@ -637,14 +637,16 @@ class Viewer:
             self.maps_open = not self.maps_open
         y += px(37)
         if self.maps_open:
-            for index, (path, tag) in enumerate(self.entries):
-                row = pygame.Rect(x, y, w, px(27))
-                label = text_fit(path.stem, Fonts.get(13), w - px(22))
-                if ui.button(surf, ("map", index), row, label, active=index == self.index,
-                             style="ghost", align="left", size=13, tooltip=str(path)):
-                    if self.load_index(index):
-                        self.maps_open = False
-                y += px(29)
+            area = self.map_list_rect(rect.x, rect.y, rect.w)
+            y = self.draw_map_list(surf, ui, area)
+        y = self.draw_algorithm_select(surf, ui, x, y + px(8), w)
+        compare_rect = pygame.Rect(x, y, w, px(31))
+        if self.toggle_row(surf, ui, ("tog", "compare"), compare_rect, "Comparar dois", "C",
+                           self.compare, tooltip="Compara dois algoritmos no mesmo mapa."):
+            self.toggle("compare")
+        y += px(35)
+        if self.compare:
+            y = self.draw_algorithm_select(surf, ui, x, y, w, secondary=True)
 
         y = self.section(surf, x, y + px(8), "Modelo do grafo")
         for key, label in MODELS.items():
@@ -657,18 +659,6 @@ class Viewer:
             y += px(33)
         y += px(10)
 
-        bw, gap = (w - px(8)) // 2, px(8)
-
-        if self.compare:
-            y = self.section(surf, x, y, "Comparar com")
-            bh2 = px(28)
-            for k, name in enumerate(ALGORITHMS):
-                r = pygame.Rect(x + (k % 2) * (bw + gap), y + (k // 2) * (bh2 + px(6)), bw, bh2)
-                if ui.button(surf, ("algob", k), r, name, active=self.algo_b == name, align="left",
-                             tooltip=f"Shift+{k + 1}", size=12):
-                    self.set_algo(name, secondary=True)
-            y += 2 * (bh2 + px(6)) + px(8)
-
         # ---- visualização
         y = self.section(surf, x, y, "Visualização")
         is_est = self.model == "estados"
@@ -679,8 +669,6 @@ class Viewer:
              "Multiplicidade: quantos estados do G_est existem em cada casa."),
             ("traps", "Estados-armadilha", "T", self.show_traps, is_est,
              "Estados alcançáveis a partir do início que não chegam ao ALVO (busca no transposto)."),
-            ("compare", "Comparar lado a lado", "C", self.compare, True,
-             "Mostra dois algoritmos ao mesmo tempo na mesma linha do tempo."),
         ]
         for key, label, hint, value, enabled, tip in rows:
             r = pygame.Rect(x - px(4), y, w + px(8), px(32))
@@ -706,6 +694,59 @@ class Viewer:
             text(surf, label, Fonts.get(13, bold=True), T.TEXT, mid.center, "center")
 
         return y + px(42)
+
+    # [IA] Codex – lista de mapas e seleção de algoritmos no painel lateral
+    def map_list_rect(self, x, y, width):
+        return pygame.Rect(x + px(14), y + px(71), width - px(28),
+                           min(MAP_LIST_ROWS, len(self.entries)) * px(29))
+
+    def draw_map_list(self, surf, ui, area):
+        visible = min(MAP_LIST_ROWS, len(self.entries))
+        max_scroll = len(self.entries) - visible
+        if ui.hover(area) and ui.wheel:
+            self.map_scroll = max(0, min(max_scroll, self.map_scroll - ui.wheel))
+        self.map_scroll = min(self.map_scroll, max_scroll)
+        old_clip, old_ui_clip = surf.get_clip(), ui.clip
+        clip = area.clip(old_clip)
+        surf.set_clip(clip)
+        ui.clip = clip
+        for offset in range(visible):
+            index = self.map_scroll + offset
+            path, _ = self.entries[index]
+            row = pygame.Rect(area.x, area.y + offset * px(29), area.w - px(6), px(27))
+            label = text_fit(path.stem, Fonts.get(13), row.w - px(22))
+            if ui.button(surf, ("map", index), row, label, active=index == self.index,
+                         style="ghost", align="left", size=13, tooltip=str(path)):
+                if index != self.index:
+                    self.load_index(index)
+        if max_scroll:
+            thumb_h = max(px(12), area.h * visible // len(self.entries))
+            thumb_y = area.y + (area.h - thumb_h) * self.map_scroll // max_scroll
+            pygame.draw.rect(surf, T.TEXT_DIM, (area.right - px(3), thumb_y, px(3), thumb_h))
+        surf.set_clip(old_clip)
+        ui.clip = old_ui_clip
+        return area.bottom
+
+    def draw_algorithm_select(self, surf, ui, x, y, width, secondary=False):
+        y = self.section(surf, x, y, "Comparar com" if secondary else "Algoritmo")
+        selected = self.algo_b if secondary else self.algo
+        label = selected + ("  ▾" if self.algorithm_select != secondary else "  ▴")
+        if ui.button(surf, ("algorithm-select", secondary), pygame.Rect(x, y, width, px(31)),
+                     label, size=13, align="left"):
+            self.algorithm_select = None if self.algorithm_select == secondary else secondary
+            if self.algorithm_select is not None and ui.clip is not None:
+                options_bottom = y + px(34) + len(ALGORITHMS) * px(29)
+                self.side_scroll += max(0, options_bottom - ui.clip.bottom)
+        y += px(34)
+        if self.algorithm_select == secondary:
+            for name in ALGORITHMS:
+                row = pygame.Rect(x, y, width, px(27))
+                if ui.button(surf, ("algorithm-option", secondary, name), row, name,
+                             active=selected == name, style="ghost", align="left", size=13):
+                    self.set_algo(name, secondary=secondary)
+                    self.algorithm_select = None
+                y += px(29)
+        return y + px(6)
 
     # ---------------------------------------------------------------- centro
     def draw_center(self, surf, ui, rect):
@@ -786,22 +827,12 @@ class Viewer:
         # cabeçalho
         r = text(surf, run.algorithm, Fonts.get(16, bold=True), T.TEXT, (header.x, header.centery), "midleft")
         chip = self.status_chip(surf, r.right + px(12), header.centery, run.status)
-        parts = []
-        if self.compare_all:
-            length = len(run.explore) if self.explore_mode else len(run.frames)
-            if length:
-                parts.append(f"passo {min(int(self.player.pos), length - 1)}/{length - 1}")
-        if run.loop:
-            parts.append(f"volta {self.player.laps + 1}")
-            parts.append(f"{fmt_num(run.path_cost)}/volta")
-        elif run.frames:
-            parts.append(f"custo {fmt_num(run.path_cost)}")
-            parts.append(f"{run.moves} mov.")
-        parts.append(f"{run.elapsed_ms:.2f} ms")
-        summary = "  ·  ".join(parts)
-        font = Fonts.get(13)
-        if font.size(summary)[0] < header.right - chip.right - px(16):
-            text(surf, summary, font, T.TEXT_DIM, (header.right, header.centery), "midright")
+        length = len(run.explore) if self.explore_mode else len(run.frames)
+        if length:
+            progress = f"Passo {min(int(self.player.pos), length - 1)}/{length - 1}"
+            font = Fonts.get(13)
+            if font.size(progress)[0] <= header.right - chip.right - px(10):
+                text(surf, progress, font, T.TEXT_DIM, (header.right, header.centery), "midright")
 
         # aviso quando não há o que animar
         empty = (not run.explore) if self.explore_mode else (not run.frames)
