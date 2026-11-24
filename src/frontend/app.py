@@ -42,6 +42,8 @@ class ProjectMenu:
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
             self.entered = True
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.cover()
 
     def update(self, dt):
         pass
@@ -53,8 +55,8 @@ class ProjectMenu:
              (cx, cy - px(126)), "center")
         pygame.draw.line(surf, T.ACCENT, (cx-px(55), cy-px(94)), (cx+px(55), cy-px(94)), px(3))
         if self.entered:
-            choices = [("Parte 1 · Labirinto com chaves", self.app.open_viewer),
-                       ("Parte 2 · Rede de hyperlinks do Reddit", self.app.open_reddit)]
+            choices = [("Parte 1", self.app.open_viewer),
+                       ("Parte 2", self.app.open_reddit), ("Voltar à capa", self.cover)]
         else:
             members = ("Lucas Menezes Santana", "Ricardo Sergio Freitas",
                        "Thiago Medeiros", "Kauan Novello")
@@ -64,8 +66,12 @@ class ProjectMenu:
         for index, (label, action) in enumerate(choices):
             width = min(px(380), surf.get_width() - px(24))
             rect = pygame.Rect(cx-width//2, cy+px(66)+index*px(54), width, px(42))
-            if ui.button(surf, ("project-menu", index), rect, label, style="accent", bold=True):
+            if ui.button(surf, ("project-menu", index), rect, label, style="default" if label == "Voltar à capa" else "accent", bold=True):
                 action()
+
+    # [IA] Codex – navegação entre capa e menu
+    def cover(self):
+        self.entered = False
 
     def enter(self):
         self.entered = True

@@ -154,7 +154,7 @@ class RedditScreen:
         pygame.draw.rect(surf, T.PANEL, (0, 0, width, px(138)))
         if ui.button(surf, "reddit-back", pygame.Rect(px(16), px(12), px(78), px(34)), "Menu"):
             self.app.open_menu()
-        title = "Parte 2 · Rede de hyperlinks do Reddit"
+        title = "Parte 2"
         text(surf, title, Fonts.get(21, bold=True), T.TEXT, (px(110), px(19)))
         tab_w = min(px(145), (width - px(32)) // 4)
         for index, (key, label) in enumerate(ALGORITHMS.items()):
