@@ -166,7 +166,7 @@ ampliação ou retorna ao menu. Ajuste a velocidade e os passos no rodapé do ta
 para consultar os detalhes, as camadas e os graus. Para a demonstração com mapa surpresa,
 arraste o arquivo `.txt` para a janela ou use `--mapa caminho/do/mapa.txt`.
 
-A rubrica também exige `out/parte1/labirinto_interativo.html` como entrega da equipe.
+O labirinto interativo desta entrega é executado no Pygame.
 
 ## Parte 2 — Reddit Hyperlink Network
 
