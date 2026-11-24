@@ -303,6 +303,7 @@ class Viewer:
         self.app.toast(f"PNG salvo em out/parte1/{out.name}", "ok")
 
     # -------------------------------------------------------------- eventos
+    # [IA] Codex – atalho de retorno ao menu
     def handle_event(self, event):
         if event.type != pygame.KEYDOWN:
             return
@@ -312,7 +313,9 @@ class Viewer:
             if key in (pygame.K_ESCAPE, pygame.K_F1) or event.unicode == "?":
                 self.show_help = False
             return
-        if key == pygame.K_SPACE:
+        if key == pygame.K_ESCAPE:
+            self.app.open_menu()
+        elif key == pygame.K_SPACE:
             self.player.toggle()
         elif key == pygame.K_RIGHT:
             self.player.step(10 if shift else 1)
