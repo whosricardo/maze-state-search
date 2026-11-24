@@ -131,8 +131,8 @@ class Viewer:
         self.speeds = {"path": 5.0, "explore": 45.0}
         self.show_help = False
         self.sidebar_open = None
-        self.bottom_open = None
-        self.maps_open = True
+        self.bottom_open = False
+        self.maps_open = False
         self.map_scroll = 0
         self.algorithm_select = None
         self.more_open = False
@@ -506,21 +506,20 @@ class Viewer:
         width, height = surf.get_size()
         if self.sidebar_open is None:
             self.sidebar_open = width >= px(1024) and height >= px(700)
-        if self.bottom_open is None:
-            self.bottom_open = width >= px(1024) and height >= px(700)
         top = pygame.Rect(0, 0, width, px(54))
         metrics_height = min(px(155), max(px(98), height // 5)) if self.bottom_open else 0
         metrics = pygame.Rect(0, height - metrics_height, width, metrics_height)
-        playback_height = px(96 if self.bottom_open else 44)
-        playback = pygame.Rect(0, metrics.y - playback_height, width, playback_height)
+        playback_height = px(76)
+        canvas_bottom = metrics.y - playback_height
 
         surf.fill(T.BG)
         ui.blocked = self.show_help
         more_button = self.draw_top(surf, ui, top)
         ui.blocked = self.show_help or self.more_open
         side_width = min(px(256), width // 3) if self.sidebar_open else 0
-        side = pygame.Rect(0, top.bottom, side_width, max(0, playback.y - top.bottom))
-        center = pygame.Rect(side.right, top.bottom, width - side.right, side.h)
+        side = pygame.Rect(0, top.bottom, side_width, max(0, metrics.y - top.bottom))
+        center = pygame.Rect(side.right, top.bottom, width - side.right, max(0, canvas_bottom - top.bottom))
+        playback = pygame.Rect(center.x, canvas_bottom, center.w, playback_height)
 
         if side_width:
             pygame.draw.rect(surf, T.PANEL, side)
@@ -717,8 +716,8 @@ class Viewer:
             label = text_fit(path.stem, Fonts.get(13), row.w - px(22))
             if ui.button(surf, ("map", index), row, label, active=index == self.index,
                          style="ghost", align="left", size=13, tooltip=str(path)):
-                if index != self.index:
-                    self.load_index(index)
+                if index == self.index or self.load_index(index):
+                    self.maps_open = False
         if max_scroll:
             thumb_h = max(px(12), area.h * visible // len(self.entries))
             thumb_y = area.y + (area.h - thumb_h) * self.map_scroll // max_scroll
@@ -813,8 +812,8 @@ class Viewer:
     def draw_board(self, surf, ui, board, run, area):
         s = self.session
         header = pygame.Rect(area.x + px(18), area.y + px(12), area.w - px(36), px(28))
-        inner = pygame.Rect(area.x + px(18), header.bottom + px(10), area.w - px(36),
-                            area.bottom - header.bottom - px(22))
+        inner = pygame.Rect(area.x + px(18), header.bottom + px(20), area.w - px(36),
+                            area.bottom - header.bottom - px(27))
         if inner.w < px(12) or inner.h < px(12):
             return
         board.fit(inner, min_cell=1 if self.compare_all else 3)
@@ -833,6 +832,20 @@ class Viewer:
             font = Fonts.get(13)
             if font.size(progress)[0] <= header.right - chip.right - px(10):
                 text(surf, progress, font, T.TEXT_DIM, (header.right, header.centery), "midright")
+
+        # [IA] Codex – métricas essenciais junto à demonstração
+        if run.loop:
+            result = f"Custo {fmt_num(run.path_cost)}/volta · {run.moves} passos/volta"
+        elif run.frames:
+            result = f"Custo {fmt_num(run.path_cost)} · {run.moves} passos"
+        else:
+            result = "Custo — · Passos —"
+        metric_font = Fonts.get(12)
+        time_label = f"Tempo {run.elapsed_ms:.2f} ms"
+        time_width = metric_font.size(time_label)[0]
+        text(surf, time_label, metric_font, T.TEXT, (header.right, header.bottom + px(1)), "topright")
+        text(surf, text_fit(result, metric_font, max(1, header.w - time_width - px(10))),
+             metric_font, T.TEXT, (header.x, header.bottom + px(1)))
 
         # aviso quando não há o que animar
         empty = (not run.explore) if self.explore_mode else (not run.frames)
@@ -1115,56 +1128,28 @@ class Viewer:
             rrect(surf, T.PANEL_3, pygame.Rect(rect.right - px(5), bar_y, px(3), bar_h), 2)
 
     # ---------------------------------------------------------------- barra inferior
-    # [IA] Codex – sintaxe Pygame para recolher a reprodução e as métricas
+    # [IA] Codex – reprodução fixa no canvas e métricas recolhíveis
     def draw_bottom_dock(self, surf, ui, rect):
         pygame.draw.rect(surf, T.PANEL, rect)
         pygame.draw.line(surf, T.BORDER, rect.topleft, rect.topright)
-        button = pygame.Rect(rect.right - px(122), rect.y + px(6), px(112), px(32))
-        label = "Recolher painel" if self.bottom_open else "Expandir painel"
-        if self.bottom_open:
-            controls = pygame.Rect(rect.x, rect.y, button.x - rect.x - px(6), rect.h)
-            self.draw_bottom(surf, ui, controls)
-        else:
-            self.draw_compact_playback(surf, ui, rect, button.x)
-        if ui.button(surf, "bottom-dock", button, label, size=13):
+        button = pygame.Rect(rect.right - px(112), rect.y + px(8), px(102), px(29))
+        label = "Recolher" if self.bottom_open else "Métricas"
+        controls = pygame.Rect(rect.x, rect.y, button.x - rect.x - px(6), rect.h)
+        self.draw_canvas_playback(surf, ui, controls)
+        if ui.button(surf, "bottom-dock", button, label, active=self.bottom_open, size=13):
             self.bottom_open = not self.bottom_open
 
-    def draw_compact_playback(self, surf, ui, rect, right):
-        p = self.player
-        items = (
-            ("prev", "prev", "Passo anterior (←)"),
-            ("pause" if p.playing else "play", "play", "Reproduzir / pausar (Espaço)"),
-            ("next", "next", "Próximo passo (→)"),
-        )
-        x = rect.x + px(10)
-        for icon, action, tooltip in items:
-            button = pygame.Rect(x, rect.y + px(6), px(36), px(32))
-            style = "accent" if action == "play" else "default"
-            if ui.button(surf, ("compact", action), button, icon=icon, style=style,
-                         tooltip=tooltip, enabled=p.length > 1):
-                if action == "play":
-                    p.toggle()
-                else:
-                    p.step(-1 if action == "prev" else 1)
-            x = button.right + px(6)
-        message = f"Passo {int(round(p.pos))} de {p.last}"
-        font = Fonts.get(13, bold=True)
-        text(surf, text_fit(message, font, max(0, right - x - px(8))),
-             font, T.TEXT, (x, rect.centery), "midleft")
-
-    def draw_bottom(self, surf, ui, rect):
-        pygame.draw.rect(surf, T.PANEL, rect)
-        pygame.draw.line(surf, T.BORDER, rect.topleft, rect.topright, 1)
+    def draw_canvas_playback(self, surf, ui, rect):
         p = self.player
         cy = rect.centery
-        x = rect.x + px(18)
+        x = rect.x + px(12)
         has = p.length > 1
         for icon, action, size, tip in (
-            ("first", "first", 36, "Início (Home)"),
-            ("prev", "prev", 36, "Passo anterior (←, Shift+← = 10)"),
-            ("pause" if p.playing else "play", "play", 46, "Reproduzir / pausar (Espaço)"),
-            ("next", "next", 36, "Próximo passo (→, Shift+→ = 10)"),
-            ("last", "last", 36, "Fim (End)"),
+            ("first", "first", 29, "Início (Home)"),
+            ("prev", "prev", 29, "Passo anterior (←, Shift+← = 10)"),
+            ("pause" if p.playing else "play", "play", 36, "Reproduzir / pausar (Espaço)"),
+            ("next", "next", 29, "Próximo passo (→, Shift+→ = 10)"),
+            ("last", "last", 29, "Fim (End)"),
         ):
             b = pygame.Rect(0, 0, px(size), px(size))
             b.midleft = (x, cy)
@@ -1180,11 +1165,11 @@ class Viewer:
                     p.step(1)
                 else:
                     p.seek(p.last)
-            x = b.right + px(8)
+            x = b.right + px(5)
 
         # ---- linha do tempo (linha de cima) e velocidade (linha de baixo)
-        tx = x + px(18)
-        tw = rect.right - px(22) - tx
+        tx = x + px(8)
+        tw = max(1, rect.right - px(10) - tx)
         mode = "Exploração" if self.explore_mode else ("Ciclo negativo" if p.loop else "Percurso")
         idx = int(round(p.pos)) if has else 0
         text(surf, f"{mode}  ·  passo {idx} de {p.last}", Fonts.get(13, bold=True), T.TEXT, (tx, rect.y + px(12)))
@@ -1201,13 +1186,13 @@ class Viewer:
                 if frames[k].keys != frames[k - 1].keys:
                     ticks.append((k / p.last, self.session.color_of_keys(frames[k].keys)))
         t = p.pos / p.last if has else 0.0
-        new_t, changed = ui.slider(surf, "timeline", pygame.Rect(tx, rect.y + px(36), tw, px(14)), t, ticks=ticks)
+        new_t, changed = ui.slider(surf, "timeline", pygame.Rect(tx, rect.y + px(29), tw, px(14)), t, ticks=ticks)
         if changed and has:
             p.seek(round(new_t * p.last))
 
-        sy = rect.y + px(72)
+        sy = rect.y + px(58)
         r = text(surf, "Velocidade", Fonts.get(12, bold=True), T.TEXT_DIM, (tx, sy), "midleft")
-        speed_w = min(px(220), max(px(80), tw - (r.right - tx) - px(130)))
+        speed_w = min(px(220), max(1, tw - (r.right - tx) - px(115)))
         st, changed = ui.slider(surf, "speed", pygame.Rect(r.right + px(14), sy - px(7), speed_w, px(14)),
                                 speed_to_t(self.speed), color=T.INFO)
         if changed:

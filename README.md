@@ -162,8 +162,8 @@ python -m src.frontend --editor
 A capa abre o menu com **Parte 1**, **Parte 2** e **Voltar à capa**. No labirinto,
 use o ícone na borda da lateral para abrir a seleção de mapa, modelo do grafo e algoritmo. Use **Comparar os quatro**
 para sincronizar os tabuleiros e clique em um deles para ampliá-lo. **Esc** fecha a
-ampliação ou retorna ao menu. Abra **Expandir painel** para ajustar a velocidade
-e consultar métricas, camadas e graus. Para a demonstração com mapa surpresa,
+ampliação ou retorna ao menu. Ajuste a velocidade e os passos no rodapé do tabuleiro. Abra **Métricas**
+para consultar os detalhes, as camadas e os graus. Para a demonstração com mapa surpresa,
 arraste o arquivo `.txt` para a janela ou use `--mapa caminho/do/mapa.txt`.
 
 A rubrica também exige `out/parte1/labirinto_interativo.html` como entrega da equipe.
