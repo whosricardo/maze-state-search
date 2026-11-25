@@ -74,12 +74,11 @@ class RedditScreen:
                 kind, value = self.channel.recv()
                 self.running = False
                 if kind == "ready":
-                    names, edges = value
-                    self.communities = tuple(names)
-                    self.community_set = set(names)
-                    self.network = RedditGraphView(names, edges)
+                    self.communities = tuple(value)
+                    self.community_set = set(value)
                 elif kind == "result":
-                    self.result = value
+                    self.result, names, edges = value
+                    self.network = RedditGraphView(names, edges)
                 elif kind == "load_error":
                     self.stop()
                     self.live_error = value
@@ -128,6 +127,7 @@ class RedditScreen:
         origin, destination = self.origin.value.lower(), self.destination.value.lower()
         optional = self.algorithm in ("bfs", "dfs")
         self.result = None
+        self.network = None
         if origin not in self.community_set or (destination not in self.community_set and not (optional and not destination)):
             self.live_error = "Selecione comunidades do dataset nos campos da consulta."
             return
@@ -144,6 +144,7 @@ class RedditScreen:
         if self.running and (mode is not None or algorithm is not None):
             self.stop()
         self.result = None
+        self.network = None
         self.live_error = None
         if mode is not None:
             self.mode = mode
@@ -251,12 +252,14 @@ class RedditScreen:
             y = self.draw_values(surf, box, y, self.result)
         return y
 
-    # [IA] Codex – visualização da rede completa com a resposta da consulta.
+    # [IA] Codex – visualização do subgrafo gerado pela consulta.
     def draw_network(self, surf, ui, box, y):
         result = self.result or {}
         cycle = result.get("cycle")
         path = result.get("path")
-        legend = f"Grafo completo · {len(self.communities):,} comunidades · {len(self.network.edges):,} arestas"
+        vertices = len(self.network.indices)
+        edges = len(self.network.edges)
+        legend = f"Grafo da busca · {vertices:,} comunidades alcançadas · {edges:,} arestas entre elas"
         y = self.paragraph(surf, box, y, legend.replace(",", "."), T.TEXT_DIM)
         if cycle:
             y = self.paragraph(surf, box, y, "Ciclo negativo em amarelo", T.WARN)

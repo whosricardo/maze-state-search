@@ -12,12 +12,7 @@ def serve(channel, path):
         data = aggregate_interactions(load_reddit_dataset(path))
         original = build_reddit_graph(data)
         transformed = build_dijkstra_graph(data)
-        # [IA] Codex – enviar a topologia completa para a visualização Pygame.
-        names = sorted(original.adjacency)
-        indices = {name: index for index, name in enumerate(names)}
-        edges = [(indices[source], indices[destination])
-                 for source, neighbors in original.adjacency.items() for destination in neighbors]
-        channel.send(("ready", (names, edges)))
+        channel.send(("ready", sorted(original.adjacency)))
         while True:
             algorithm, origin, destination = channel.recv()
             try:
@@ -47,7 +42,16 @@ def serve(channel, path):
                     details = {key: result[key] for key in ("status", "steps", "path", "cost", "cycle")
                                if key in result}
                 details["Tempo desta execução"] = f"{(perf_counter() - start) * 1000:.3f} ms"
-                channel.send(("result", details))
+                # [IA] Codex – expor o subgrafo induzido pelos vértices alcançados.
+                names = sorted(result["parents"])
+                indices = {name: index for index, name in enumerate(names)}
+                edges = [
+                    (indices[source], indices[destination])
+                    for source in names
+                    for destination in original.adjacency[source]
+                    if destination in indices
+                ]
+                channel.send(("result", (details, names, edges)))
             except Exception as error:
                 channel.send(("error", str(error)))
     except (EOFError, BrokenPipeError):
