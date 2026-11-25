@@ -7,8 +7,9 @@ import pygame
 
 from src.frontend import theme as T
 from src.frontend.theme import Fonts, px
-from src.frontend.widgets import TextInput, rrect, text, text_fit, wrap
+from src.frontend.widgets import TextInput, text, text_fit, wrap
 from src.frontend.reddit_worker import serve
+from src.frontend.reddit_graph import RedditGraphView
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "out" / "parte2"
@@ -45,6 +46,7 @@ class RedditScreen:
         self.process = None
         self.channel = None
         self.communities = ()
+        self.network = None
         self.community_set = set()
         self.origin = TextInput(placeholder="Origem")
         self.destination = TextInput(placeholder="Destino")
@@ -72,8 +74,10 @@ class RedditScreen:
                 kind, value = self.channel.recv()
                 self.running = False
                 if kind == "ready":
-                    self.communities = tuple(value)
-                    self.community_set = set(value)
+                    names, edges = value
+                    self.communities = tuple(names)
+                    self.community_set = set(names)
+                    self.network = RedditGraphView(names, edges)
                 elif kind == "result":
                     self.result = value
                 elif kind == "load_error":
@@ -118,6 +122,7 @@ class RedditScreen:
         self.running = False
         self.communities = ()
         self.community_set.clear()
+        self.network = None
 
     def query(self):
         origin, destination = self.origin.value.lower(), self.destination.value.lower()
@@ -240,66 +245,28 @@ class RedditScreen:
         if ui.button(surf, "run-live", execute, "Executar", style="accent"):
             self.query()
         y = form_bottom + px(14)
+        if self.network is not None:
+            y = self.draw_network(surf, ui, box, y)
         if self.result:
-            if self.result.get("cycle"):
-                y = self.draw_route(surf, ui, box, y, self.result["cycle"], cycle=True)
-            elif self.result.get("path"):
-                y = self.draw_route(surf, ui, box, y, self.result["path"])
-            y = self.draw_values(surf, box, y, {
-                key: value for key, value in self.result.items() if key not in ("path", "cycle")
-            })
+            y = self.draw_values(surf, box, y, self.result)
         return y
 
-    # [IA] Codex – desenho Pygame dos vértices e arcos retornados pela consulta.
-    def draw_route(self, surf, ui, box, y, vertices, cycle=False):
-        title = "Ciclo negativo" if cycle else "Caminho dirigido"
-        y = self.paragraph(surf, box, y + px(8), title, T.ACCENT)
-        closed = cycle and len(vertices) > 1 and vertices[0] == vertices[-1]
-        nodes = vertices[:-1] if closed else vertices
-        x = box.centerx
-        label_font = Fonts.get(14, bold=True)
-        step = px(66)
-        height = px(38)
-        width = min(px(390), box.w - px(65))
-        stroke = max(1, px(2))
-        for index, name in enumerate(nodes):
-            top = y + index * step
-            if top + step < box.y:
-                continue
-            if top > box.bottom:
-                break
-            node = pygame.Rect(x - width // 2, top, width, height)
-            endpoint = not cycle and index in (0, len(nodes) - 1)
-            color = T.ACCENT if endpoint else T.BORDER
-            rrect(surf, T.PANEL_2, node, 7)
-            rrect(surf, color, node, 7, 1)
-            label = f"r/{name}"
-            shown = text_fit(label, label_font, width - px(16))
-            text(surf, shown, label_font, T.TEXT, node.center, "center")
-            if ui.hover(node):
-                ui.tooltip = label
-            if index + 1 < len(nodes):
-                tip_y = top + step - px(3)
-                pygame.draw.line(surf, T.TEXT_DIM, node.midbottom, (x, tip_y), stroke)
-                pygame.draw.polygon(surf, T.TEXT_DIM,
-                                    [(x, tip_y), (x - px(5), tip_y - px(6)), (x + px(5), tip_y - px(6))])
-
-        if closed:
-            right = x - width // 2 + width
-            first_y = y + height // 2
-            last_y = y + (len(nodes) - 1) * step + height // 2
-            lane = right + px(20)
-            pygame.draw.lines(surf, T.WARN, False, [
-                (right, last_y), (lane, last_y), (lane, first_y), (right + px(3), first_y),
-            ] if len(nodes) > 1 else [
-                (right, last_y + px(9)), (lane, last_y + px(9)), (lane, first_y - px(9)),
-                (right + px(3), first_y - px(9)),
-            ], stroke)
-            arrow_y = first_y if len(nodes) > 1 else first_y - px(9)
-            pygame.draw.polygon(surf, T.WARN, [(right + px(3), arrow_y),
-                                                (right + px(10), arrow_y - px(5)),
-                                                (right + px(10), arrow_y + px(5))])
-        return y + len(nodes) * step
+    # [IA] Codex – visualização da rede completa com a resposta da consulta.
+    def draw_network(self, surf, ui, box, y):
+        result = self.result or {}
+        cycle = result.get("cycle")
+        path = result.get("path")
+        legend = f"Grafo completo · {len(self.communities):,} comunidades · {len(self.network.edges):,} arestas"
+        y = self.paragraph(surf, box, y, legend.replace(",", "."), T.TEXT_DIM)
+        if cycle:
+            y = self.paragraph(surf, box, y, "Ciclo negativo em amarelo", T.WARN)
+        elif path:
+            label = "Menor caminho em passos" if self.algorithm == "bfs" else "Caminho de menor custo"
+            y = self.paragraph(surf, box, y, label + " em laranja", T.ACCENT)
+        canvas = pygame.Rect(box.x, y, box.w, min(px(410), max(px(230), box.h * 2 // 3)))
+        if canvas.colliderect(box):
+            self.network.draw(surf, ui, canvas, cycle or path, cycle=bool(cycle))
+        return canvas.bottom + px(12)
 
     def paragraph(self, surf, box, y, value, color=T.TEXT):
         font = Fonts.get(15)

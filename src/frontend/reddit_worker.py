@@ -12,7 +12,12 @@ def serve(channel, path):
         data = aggregate_interactions(load_reddit_dataset(path))
         original = build_reddit_graph(data)
         transformed = build_dijkstra_graph(data)
-        channel.send(("ready", sorted(original.adjacency)))
+        # [IA] Codex – enviar a topologia completa para a visualização Pygame.
+        names = sorted(original.adjacency)
+        indices = {name: index for index, name in enumerate(names)}
+        edges = [(indices[source], indices[destination])
+                 for source, neighbors in original.adjacency.items() for destination in neighbors]
+        channel.send(("ready", (names, edges)))
         while True:
             algorithm, origin, destination = channel.recv()
             try:
