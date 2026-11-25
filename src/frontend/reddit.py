@@ -210,7 +210,10 @@ class RedditScreen:
             y = self.paragraph(surf, box, y, "Grafo com pesos transformados")
         elif self.algorithm == "bellman_ford":
             y = self.paragraph(surf, box, y, "Grafo com pesos originais agregados")
-        field_width = (box.w - px(16)) // 2
+        # [IA] Codex – posicionamento do formulário e do resultado.
+        execute = pygame.Rect(box.right - px(120), y, px(120), px(35))
+        field_width = (execute.x - box.x - px(32)) // 2
+        form_bottom = execute.bottom
         for index, (key, field) in enumerate((("origin", self.origin), ("destination", self.destination))):
             rect = pygame.Rect(box.x + index * (field_width + px(16)), y, field_width, px(35))
             was_focused = field.focused
@@ -228,23 +231,23 @@ class RedditScreen:
                     if not name.startswith(prefix):
                         break
                     option = pygame.Rect(rect.x, rect.bottom + px(4 + row * 29), rect.w, px(27))
+                    form_bottom = max(form_bottom, option.bottom)
                     if ui.hover(option) and ui.pressed:
                         ui.active = ("community", key, name)
                     if ui.button(surf, ("community", key, name), option, name, align="left", size=13):
                         field.value = name
                         field.focused = False
-        y += px(160)
-        if ui.button(surf, "run-live", pygame.Rect(box.x, y, px(120), px(34)), "Executar", style="accent"):
+        if ui.button(surf, "run-live", execute, "Executar", style="accent"):
             self.query()
-        y += px(45)
+        y = form_bottom + px(14)
         if self.result:
-            y = self.draw_values(surf, box, y, {
-                key: value for key, value in self.result.items() if key not in ("path", "cycle")
-            })
             if self.result.get("cycle"):
                 y = self.draw_route(surf, ui, box, y, self.result["cycle"], cycle=True)
             elif self.result.get("path"):
                 y = self.draw_route(surf, ui, box, y, self.result["path"])
+            y = self.draw_values(surf, box, y, {
+                key: value for key, value in self.result.items() if key not in ("path", "cycle")
+            })
         return y
 
     # [IA] Codex – desenho Pygame dos vértices e arcos retornados pela consulta.
