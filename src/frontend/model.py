@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
 
+from src.graphs.graph import Graph
 from src.graphs.io import (
     parse_map,
     validate_rectangular,
@@ -306,10 +307,27 @@ class MapSession:
             if model == "estados" else
             "G não é alcançável neste modelo."
         )
-        t0 = perf_counter()
+        # [IA] Codex – integração com as buscas quando a saída não existe no grafo.
+        # O destino isolado satisfaz a API das buscas ponderadas sem mudar o mapa.
+        search_graph, search_end = graph, end
+        if end is None and algorithm in ("Dijkstra", "Bellman-Ford"):
+            search_graph = Graph()
+            search_graph.adjacency = graph.adjacency.copy()
+            search_end = object()
+            search_graph.add_vertex(search_end)
+
         try:
+            search = {"DFS": dfs, "BFS": bfs, "Dijkstra": dijkstra, "Bellman-Ford": bellman_ford}[algorithm]
+            t0 = perf_counter()
+            try:
+                if algorithm == "DFS":
+                    result = search(search_graph, start)
+                else:
+                    result = search(search_graph, start, search_end)
+            finally:
+                run.elapsed_ms = (perf_counter() - t0) * 1000
+
             if algorithm == "DFS":
-                result = dfs(graph, start)
                 run.explore = sorted(result["discovery"], key=result["discovery"].get)
                 run.dfs_counts = dict(Counter(kind for _, _, kind in result["edge_types"]))
                 run.has_cycle = result["has_cycle"]
@@ -320,45 +338,22 @@ class MapSession:
                     run.message = "Caminho na árvore DFS até G (não é o mais curto nem o mais barato)."
                 else:
                     run.message = no_target_msg
-
-            elif end is None:
-                # sem alvo: exploramos com a BFS do grupo só para mostrar o que é alcançável
-                result = bfs(graph, start)
-                run.explore = list(result["parents"])
-                run.status = "Sem Caminho"
-                run.message = no_target_msg
-
-            elif algorithm == "BFS":
-                result = bfs(graph, start, end)
+            else:
                 run.explore = list(result["parents"])
                 run.status = result["status"]
                 run.steps = result["steps"]
-                if result["path"]:
-                    run.frames = self._frames(result["path"], model)
-
-            elif algorithm == "Dijkstra":
-                result = dijkstra(graph, start, end)
-                run.explore = list(result["parents"])
-                run.status = result["status"]
-                run.steps = result["steps"]
-                run.cost = result["cost"]
-                if result["path"]:
-                    run.frames = self._frames(result["path"], model)
-
-            elif algorithm == "Bellman-Ford":
-                result = bellman_ford(graph, start, end)
-                run.explore = list(result["parents"])
-                run.status = result["status"]
-                run.steps = result["steps"]
-                run.cost = result["cost"]
+                run.cost = result.get("cost")
                 if result.get("cycle"):
                     run.frames = self._frames(result["cycle"], model)
                     run.loop = True
-                    lap = run.frames[-1].cost if run.frames else 0
+                    lap = run.path_cost
                     run.message = (
-                        f"Ciclo de {len(run.frames) - 1} arcos com custo {lap} por volta: "
+                        f"Ciclo de {run.moves} arcos com custo {lap} por volta: "
                         "cada volta deixa o caminho mais barato, então não existe menor custo."
                     )
+                elif end is None:
+                    run.status = "Sem Caminho"
+                    run.message = no_target_msg
                 elif result["path"]:
                     run.frames = self._frames(result["path"], model)
 
@@ -366,7 +361,6 @@ class MapSession:
             run.status = "Recusado"
             run.message = str(error)
 
-        run.elapsed_ms = (perf_counter() - t0) * 1000
         run.explore = [v for v in run.explore if v != TARGET_VERTEX]
 
         if model == "chao" and any(f.invalid for f in run.frames) and run.status == "Encontrado":

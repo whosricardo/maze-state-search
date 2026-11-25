@@ -130,8 +130,9 @@ class Board:
         self.version += 1
         self._cache.clear()
 
-    def fit(self, area, max_cell=64):
-        cell = max(3, min(area.w // max(1, self.cols), area.h // max(1, self.rows), max_cell))
+    # [IA] Codex – suporte de encaixe para quatro tabuleiros
+    def fit(self, area, max_cell=64, min_cell=3):
+        cell = max(min_cell, min(area.w // max(1, self.cols), area.h // max(1, self.rows), max_cell))
         w, h = cell * self.cols, cell * self.rows
         self.cell = cell
         self.rect = pygame.Rect(area.x + (area.w - w) // 2, area.y + (area.h - h) // 2, w, h)

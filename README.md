@@ -148,9 +148,25 @@ Entre os resultados gerados estão:
 ### Execução
 
 ```bash
-# TODO: adicionar aqui o comando principal utilizado pelo grupo
-# para executar a Parte 1.
+python -m src.solve
 ```
+
+### Interface Pygame
+
+```bash
+python -m src.frontend
+python -m src.frontend --mapa data/mapas/m03_tres_chaves.txt
+python -m src.frontend --editor
+```
+
+A capa abre o menu com **Parte 1**, **Parte 2** e **Voltar à capa**. No labirinto,
+use o ícone na borda da lateral para abrir a seleção de mapa, modelo do grafo e algoritmo. Use **Comparar os quatro**
+para sincronizar os tabuleiros e clique em um deles para ampliá-lo. **Esc** fecha a
+ampliação ou retorna ao menu. Ajuste a velocidade e os passos no rodapé do tabuleiro. Abra **Métricas**
+para consultar os detalhes, as camadas e os graus. Para a demonstração com mapa surpresa,
+arraste o arquivo `.txt` para a janela ou use `--mapa caminho/do/mapa.txt`.
+
+O labirinto interativo desta entrega é executado no Pygame.
 
 ## Parte 2 — Reddit Hyperlink Network
 
@@ -159,6 +175,17 @@ O dataset utilizado está localizado em:
 ```text
 data/dataset_parte2/soc-redditHyperlinks-body.tsv
 ```
+
+Baixe a versão oficial do [Stanford SNAP](https://snap.stanford.edu/data/soc-RedditHyperlinks.html):
+
+```bash
+python scripts/download_reddit_dataset.py
+```
+
+Na interface, **Casos salvos** e **Figuras e notas** usam os arquivos já registrados
+pelo grupo. Abra **Consulta ao vivo** e carregue o dataset para pesquisar comunidades.
+BFS e DFS aceitam destino opcional. Dijkstra e Bellman-Ford exigem os dois campos.
+O tempo de uma consulta individual aparece separado das médias do benchmark.
 
 Cada registro representa um hyperlink direcionado entre dois subreddits.
 
@@ -212,7 +239,7 @@ O relatório contém:
 ### Executar benchmarks
 
 ```bash
-# TODO: confirmar o comando utilizado para executar benchmark.py
+python -m src.parte2.benchmark
 ```
 
 ## Comparação dos algoritmos
@@ -254,8 +281,8 @@ As respectivas notas analíticas estão armazenadas em `docs/`.
 ### Executar as visualizações
 
 ```bash
-# TODO: confirmar os comandos exatos utilizados pelo grupo
-# para visualizations.py e explanatory_visualizations.py.
+python -m src.parte2.visualizations
+python -m src.parte2.explanatory_visualizations
 ```
 
 ## Documentação
@@ -303,9 +330,10 @@ Essa separação mantém código, dados de entrada e resultados organizados em d
 
 ## Integrantes
 
-```text
-TODO: adicionar nomes dos integrantes do grupo.
-```
+- Lucas Menezes Santana
+- Ricardo Sergio Freitas
+- Thiago Medeiros
+- Kauan Novello
 
 ## Contribuições
 

@@ -458,3 +458,15 @@ resultados em quadros de animação.
 
 O grupo revisou o código gerado e é responsável por saber explicar cada módulo
 (`theme`, `widgets`, `board`, `model`, `viewer`, `editor`, `app`).
+
+## 17. Interface Pygame e leitura do dataset — Codex
+
+Apoio técnico para organizar a capa, os menus e as abas, desenhar a comparação
+com os tabuleiros existentes, exibir os resultados salvos do grupo, executar
+consultas em um processo separado e ler o cabeçalho do TSV oficial do SNAP.
+Os trechos correspondentes têm comentários `# [IA] Codex`.
+
+A integração chama os quatro algoritmos e as funções de modelagem já escritos
+pelo grupo. As figuras, notas e o benchmark exibidos são os arquivos existentes
+no repositório. A equipe deve registrar este uso na declaração oficial e
+confirmar quais integrantes revisaram e sabem explicar os trechos.
