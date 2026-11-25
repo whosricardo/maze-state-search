@@ -7,7 +7,7 @@ import pygame
 
 from src.frontend import theme as T
 from src.frontend.theme import Fonts, px
-from src.frontend.widgets import TextInput, text, text_fit, wrap
+from src.frontend.widgets import TextInput, rrect, text, text_fit, wrap
 from src.frontend.reddit_worker import serve
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -238,8 +238,65 @@ class RedditScreen:
             self.query()
         y += px(45)
         if self.result:
-            y = self.draw_values(surf, box, y, self.result)
+            y = self.draw_values(surf, box, y, {
+                key: value for key, value in self.result.items() if key not in ("path", "cycle")
+            })
+            if self.result.get("cycle"):
+                y = self.draw_route(surf, ui, box, y, self.result["cycle"], cycle=True)
+            elif self.result.get("path"):
+                y = self.draw_route(surf, ui, box, y, self.result["path"])
         return y
+
+    # [IA] Codex – desenho Pygame dos vértices e arcos retornados pela consulta.
+    def draw_route(self, surf, ui, box, y, vertices, cycle=False):
+        title = "Ciclo negativo" if cycle else "Caminho dirigido"
+        y = self.paragraph(surf, box, y + px(8), title, T.ACCENT)
+        closed = cycle and len(vertices) > 1 and vertices[0] == vertices[-1]
+        nodes = vertices[:-1] if closed else vertices
+        x = box.centerx
+        label_font = Fonts.get(14, bold=True)
+        step = px(66)
+        height = px(38)
+        width = min(px(390), box.w - px(65))
+        stroke = max(1, px(2))
+        for index, name in enumerate(nodes):
+            top = y + index * step
+            if top + step < box.y:
+                continue
+            if top > box.bottom:
+                break
+            node = pygame.Rect(x - width // 2, top, width, height)
+            endpoint = not cycle and index in (0, len(nodes) - 1)
+            color = T.ACCENT if endpoint else T.BORDER
+            rrect(surf, T.PANEL_2, node, 7)
+            rrect(surf, color, node, 7, 1)
+            label = f"r/{name}"
+            shown = text_fit(label, label_font, width - px(16))
+            text(surf, shown, label_font, T.TEXT, node.center, "center")
+            if ui.hover(node):
+                ui.tooltip = label
+            if index + 1 < len(nodes):
+                tip_y = top + step - px(3)
+                pygame.draw.line(surf, T.TEXT_DIM, node.midbottom, (x, tip_y), stroke)
+                pygame.draw.polygon(surf, T.TEXT_DIM,
+                                    [(x, tip_y), (x - px(5), tip_y - px(6)), (x + px(5), tip_y - px(6))])
+
+        if closed:
+            right = x - width // 2 + width
+            first_y = y + height // 2
+            last_y = y + (len(nodes) - 1) * step + height // 2
+            lane = right + px(20)
+            pygame.draw.lines(surf, T.WARN, False, [
+                (right, last_y), (lane, last_y), (lane, first_y), (right + px(3), first_y),
+            ] if len(nodes) > 1 else [
+                (right, last_y + px(9)), (lane, last_y + px(9)), (lane, first_y - px(9)),
+                (right + px(3), first_y - px(9)),
+            ], stroke)
+            arrow_y = first_y if len(nodes) > 1 else first_y - px(9)
+            pygame.draw.polygon(surf, T.WARN, [(right + px(3), arrow_y),
+                                                (right + px(10), arrow_y - px(5)),
+                                                (right + px(10), arrow_y + px(5))])
+        return y + len(nodes) * step
 
     def paragraph(self, surf, box, y, value, color=T.TEXT):
         font = Fonts.get(15)
