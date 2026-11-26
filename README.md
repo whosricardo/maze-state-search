@@ -42,14 +42,13 @@ maze-state-search/
 │   │   └── metrics.py
 │   │
 │   └── parte2/
+│       ├── algorithm_behavior.py
 │       ├── algorithm_comparison.py
+│       ├── avd_parte2.ipynb
 │       ├── benchmark.py
 │       ├── benchmark_utils.py
-│       ├── eda.py
-│       ├── explanatory_visualizations.py
-│       ├── inspect_dataset.py
 │       ├── loader.py
-│       └── visualizations.py
+│       └── path_comparison.py
 │
 ├── tests/
 ├── README.md
@@ -258,6 +257,16 @@ out/parte2/comparacao_algoritmos.png
 
 ## Análise e visualização de dados
 
+A análise exploratória e explanatória da Parte 2 (AVD) está no notebook:
+
+```text
+src/parte2/avd_parte2.ipynb
+```
+
+Ele reúne a exploração dos dados (estrutura, tipos, ausentes, duplicatas, sentimento,
+período, multiplicidade dos pares e pesos agregados), as visualizações e as notas
+analíticas de `docs/`.
+
 As visualizações da Parte 2 são armazenadas em:
 
 ```text
@@ -276,13 +285,27 @@ Atualmente são geradas:
 - `explanatoria_1_concentracao_graus.png`
 - `explanatoria_2_crescimento_interacoes.png`
 
+### Distribuição e outliers dos graus
+
+- `distribuicao_graus.png`
+- `outliers_graus.png`
+- `outliers_graus.csv`
+
 As respectivas notas analíticas estão armazenadas em `docs/`.
 
-### Executar as visualizações
+### Executar o notebook
+
+Com o dataset em `data/dataset_parte2/`, abra o notebook no VS Code (extensão Jupyter)
+ou no navegador:
 
 ```bash
-python -m src.parte2.visualizations
-python -m src.parte2.explanatory_visualizations
+jupyter notebook src/parte2/avd_parte2.ipynb
+```
+
+Para executar tudo pelo terminal e salvar as saídas no próprio notebook:
+
+```bash
+jupyter nbconvert --to notebook --execute --inplace src/parte2/avd_parte2.ipynb
 ```
 
 ## Documentação

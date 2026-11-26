@@ -2,3 +2,4 @@ pytest
 pygame-ce>=2.5
 pandas
 matplotlib
+notebook
