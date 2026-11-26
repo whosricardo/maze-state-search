@@ -15,6 +15,7 @@ def parse_map(path):
     return map_data
 
 
+# [IA] ChatGPT – 52–54: revisão da validação da grade, dos símbolos e de S/G.
 def validate_map(grid):
     if not validate_rectangular(grid):
         return False

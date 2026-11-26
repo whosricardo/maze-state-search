@@ -147,6 +147,7 @@ def test_cell_cost_error():
         cell_cost('+')
 
 
+# [IA] ChatGPT – 61: sugestão de conferir G_pos com uma matriz pequena.
 def test_build_g_pos_edges():
     grid = [
         ['#', '#', '#', '#', '#'],

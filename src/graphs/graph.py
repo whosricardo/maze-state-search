@@ -1,3 +1,4 @@
+# [IA] ChatGPT – 55–57: discussão da representação de adjacência, inserção e consulta.
 class Graph:
     def __init__(self):
         self.adjacency = {}
