@@ -44,6 +44,7 @@ def build_reddit_graph(df):
     return graph
 
 
+# [IA] ChatGPT – 04–05: discussão da transformação dos pesos para Dijkstra.
 def build_dijkstra_graph(df):
     graph = Graph()
 

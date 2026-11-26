@@ -1,6 +1,7 @@
 from src.graphs.graph import Graph
 
 
+# [IA] ChatGPT – 55–57: revisão dos casos de inserção e consulta na adjacência.
 def test_add_vertex():
     graph = Graph()
     graph.add_vertex(3)

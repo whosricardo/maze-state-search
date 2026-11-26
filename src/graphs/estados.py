@@ -42,6 +42,7 @@ DOOR_CELLS = {'A', 'B', 'C', 'D'}
 KEY_CELLS = {'a', 'b', 'c', 'd'}
 
 
+# [IA] ChatGPT – 52–54: discussão da indexação e dos vizinhos válidos.
 def neighbor_logic(pos, grid):
     # unpacking pos
     row, col = pos
@@ -79,10 +80,12 @@ def neighbor_logic(pos, grid):
     return neighbors
 
 
+# [IA] ChatGPT – 58–61: discussão dos custos fixos das células.
 def cell_cost(symbol):
     return CELL_COST[symbol]
 
 
+# [IA] ChatGPT – 58–61: revisão conceitual da modelagem por posições.
 def build_g_pos(grid, door_mode):
     if door_mode not in {'wall', 'floor'}:
         raise ValueError("door_mode must be a 'wall' or 'floor'")

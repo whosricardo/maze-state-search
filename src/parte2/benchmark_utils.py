@@ -5,6 +5,7 @@ from time import perf_counter
 DEFAULT_REPETITIONS = 5
 
 
+# [IA] ChatGPT – 08–10: apoio nas medições repetidas de tempo.
 def benchmark_call(
     function,
     repetitions=DEFAULT_REPETITIONS,

@@ -87,6 +87,7 @@ def count_edges(graph):
     )
 
 
+# [IA] ChatGPT – 08–10: apoio na serialização dos resultados.
 def json_default(value):
     if hasattr(value, "item"):
         return value.item()
@@ -301,6 +302,7 @@ def benchmark_size(
     }
 
 
+# [IA] ChatGPT – 38–42: discussão da contagem de vértices alcançados pela BFS.
 def summarize_bfs(
     bfs_result,
 ):
@@ -319,6 +321,7 @@ def summarize_bfs(
     }
 
 
+# [IA] ChatGPT – 08–10: apoio no resumo dos resultados de caminhos.
 def summarize_shortest_path_result(
     result,
 ):

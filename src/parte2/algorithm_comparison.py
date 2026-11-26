@@ -8,6 +8,7 @@ REPORT_PATH = "out/parte2/parte2_report.json"
 OUTPUT_PATH = "out/parte2/comparacao_algoritmos.png"
 
 
+# [IA] ChatGPT – usos 17–18: cálculo das médias e organização da tabela.
 def avg_mean_seconds(benchmarks):
     values = [
         case["mean_seconds"]
@@ -21,6 +22,7 @@ def fraction_to_percentage(fraction):
     return f"{int(fraction * 100)}%"
 
 
+# [IA] ChatGPT – 17–21: apoio na apresentação dos tempos em barras.
 def plot_comparison(comparison):
     ax = comparison.plot(
         x="tamanho",
@@ -64,6 +66,7 @@ def plot_comparison(comparison):
     plt.show()
 
 
+# [IA] ChatGPT – 17–21: apoio na organização da tabela comparativa de tempos.
 def main():
     with open(REPORT_PATH, "r", encoding="utf-8") as file:
         report = json.load(file)
