@@ -205,13 +205,14 @@ def export_global_metrics(data, path):
         )
 
 
-def build_bonus_id_map(grid):
+# [IA] Codex – rótulos dos elementos consumíveis quando a fonte é opcional.
+def build_bonus_id_map(grid, fonte_consumivel=False):
     bonus_ids = {}
     next_id = 0
 
     for row_index, row in enumerate(grid):
         for column_index, cell in enumerate(row):
-            if cell == "+":
+            if cell == "+" or (fonte_consumivel and cell == "*"):
                 bonus_ids[(row_index, column_index)] = next_id
                 next_id += 1
 

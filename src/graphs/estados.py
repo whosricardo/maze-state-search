@@ -157,7 +157,8 @@ def get_initial_state(grid):
     raise ValueError("Start position 'S' not found")
 
 
-def next_state(current_state, destination_pos, grid):
+# [IA] Codex – registro do consumo opcional da fonte no estado.
+def next_state(current_state, destination_pos, grid, fonte_consumivel=False):
     _, keys, consumed_bonus = current_state
 
     destination_row, destination_column = destination_pos
@@ -170,7 +171,7 @@ def next_state(current_state, destination_pos, grid):
             consumed_bonus
         )
 
-    if destination_symbol == '+':
+    if destination_symbol == '+' or (fonte_consumivel and destination_symbol == '*'):
         return (
             destination_pos,
             keys,
@@ -196,19 +197,20 @@ def can_enter(current_state, destination_symbol):
     return False
 
 
-def transition_cost(current_state, destination_pos, grid):
+# [IA] Codex – cálculo do custo de revisita à fonte consumível.
+def transition_cost(current_state, destination_pos, grid, fonte_consumivel=False):
     _, _, consumed_bonus = current_state
 
     destination_row, destination_column = destination_pos
     destination_symbol = grid[destination_row][destination_column]
 
-    if destination_symbol != '+':
-        return cell_cost(destination_symbol)
+    if destination_symbol == '+':
+        return 1 if destination_pos in consumed_bonus else -4
 
-    if destination_pos in consumed_bonus:
+    if fonte_consumivel and destination_symbol == '*' and destination_pos in consumed_bonus:
         return 1
 
-    return -4
+    return cell_cost(destination_symbol)
 
 
 def valid_neighbors(current_state, grid):
@@ -243,7 +245,8 @@ def valid_neighbors(current_state, grid):
     return valid
 
 
-def build_g_est(grid):
+# [IA] Codex – propagação da regra opcional da fonte nas transições.
+def build_g_est(grid, fonte_consumivel=False):
     g_est = Graph()
 
     initial_state = get_initial_state(grid)
@@ -265,8 +268,8 @@ def build_g_est(grid):
 
         neighbors = valid_neighbors(current_state, grid)
         for destination_pos in neighbors:
-            weight = transition_cost(current_state, destination_pos, grid)
-            new_state = next_state(current_state, destination_pos, grid)
+            weight = transition_cost(current_state, destination_pos, grid, fonte_consumivel=fonte_consumivel)
+            new_state = next_state(current_state, destination_pos, grid, fonte_consumivel=fonte_consumivel)
 
             g_est.add_edge(current_state, new_state, weight)
 
