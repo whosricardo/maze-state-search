@@ -174,12 +174,12 @@ class Viewer:
                 return self.load_index(i)
         return False
 
-    def load_index(self, index, quiet=False):
+    def load_index(self, index, quiet=False, fonte_consumivel=False):
         if not (0 <= index < len(self.entries)):
             return False
         path, _ = self.entries[index]
         try:
-            session = MapSession(path)
+            session = MapSession(path, fonte_consumivel=fonte_consumivel)
         except MapError as error:
             self.app.toast(str(error), "err")
             return False
@@ -656,6 +656,14 @@ class Viewer:
                 if key != self.model:
                     self.set_model(key)
             y += px(33)
+        # [IA] Codex – alterna a regra da fonte e reconstrói a sessão atual no Pygame.
+        if self.model == "estados" and self.session is not None and self.session.has_source:
+            row = pygame.Rect(x, y, w, px(32))
+            active = self.session.fonte_consumivel
+            if self.toggle_row(surf, ui, ("tog", "fonte"), row, "Fonte consumível", "",
+                               active, tooltip="A fonte vale −2 na primeira visita e 1 nas demais."):
+                self.load_index(self.index, quiet=True, fonte_consumivel=not active)
+            y += px(34)
         y += px(10)
 
         # ---- visualização

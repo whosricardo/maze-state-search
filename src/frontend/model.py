@@ -138,7 +138,8 @@ class Run:
 
 # ---------------------------------------------------------------- sessão de um mapa
 class MapSession:
-    def __init__(self, path):
+    # [IA] Codex – aplica o modo de fonte consumível às buscas e aos rótulos.
+    def __init__(self, path, fonte_consumivel=False):
         self.path = Path(path)
         self.name = self.path.stem
         try:
@@ -154,14 +155,16 @@ class MapSession:
 
         self.rows = len(self.grid)
         self.cols = len(self.grid[0])
-        self.bonus_ids = build_bonus_id_map(self.grid)
+        self.has_source = any("*" in row for row in self.grid)
+        self.fonte_consumivel = fonte_consumivel and self.has_source
+        self.bonus_ids = build_bonus_id_map(self.grid, fonte_consumivel=self.fonte_consumivel)
         self.start = get_initial_state(self.grid)
         self.s_pos = find_symbol(self.grid, 'S')
         self.g_pos = find_symbol(self.grid, 'G')
         self.map_keys = sorted({c for row in self.grid for c in row if c in KEY_CELLS})
 
         t0 = perf_counter()
-        self.g_est = build_g_est(self.grid)
+        self.g_est = build_g_est(self.grid, fonte_consumivel=self.fonte_consumivel)
         self.build_ms = (perf_counter() - t0) * 1000
         self.graphs = {
             "estados": self.g_est,
@@ -173,8 +176,8 @@ class MapSession:
         # ---------------- métricas (funções do grupo)
         states = [v for v in self.g_est.adjacency if v != TARGET_VERTEX]
         self.n_states = len(states)
-        ceiling = theoretical_ceiling(self.grid)
         free, n_keys, n_bonus = count_map_features(self.grid)
+        ceiling = theoretical_ceiling(self.grid) * 2 ** (len(self.bonus_ids) - n_bonus)
         g_pos = self.graphs["chao"]
         self.metrics = {
             "free": free,
